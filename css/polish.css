@@ -143,3 +143,20 @@ html body table th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercas
 img,video,canvas,svg{max-width:100%}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* ---- v12.6.0 Secure keypad: every PIN field is typed here, never on the phone keyboard ---- */
+.pk-field{caret-color:transparent;cursor:pointer;-webkit-user-select:none;user-select:none}
+.pk-field:focus,.pk-field.pk-active{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring,rgba(37,99,235,.25));outline:0}
+.pk{margin-top:14px;padding:10px;border:1px solid var(--border);border-radius:16px;background:var(--hover);-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.pk-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 8px;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+.pk-bar i{font-size:11px;color:var(--ptext,var(--primary))}
+.pk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pk-key{height:48px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font:inherit;font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,transform .08s,border-color .12s}
+.pk-key:hover{border-color:color-mix(in srgb,var(--primary) 45%,var(--border))}
+.pk-key:active{background:var(--psoft,var(--hover));transform:scale(.96)}
+.pk-key:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.pk-key.pk-fn{font-size:14px;font-weight:600;color:var(--muted);background:transparent}
+.pk-key.pk-fn i{font-size:18px}
+@media(max-height:620px){.pk-key{height:44px;font-size:19px}.pk{margin-top:10px;padding:8px}}
+@media(prefers-reduced-motion:reduce){.pk-key{transition:none}}
+.lock .lk-msg{min-height:20px;margin:-8px 0 14px;font-size:13px;font-weight:600;color:#fecaca;text-align:center}

@@ -2,6 +2,13 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.6.0 — Secure keypad · three-tile dashboard · fixes
+- **Secure on-screen keypad for every PIN.** Home-screen PIN, Admin PIN (set / change / remove / reset / unlock prompts) are typed on an in-app keypad. The phone keyboard never opens, fields are read-only (no paste, no autofill, no keyboard-app logging), a hardware keyboard still works on desktop. New optional **Scramble keypad digits** (Settings → Security). New file `js/services/keypad.js`.
+- **Dashboard now has exactly three tiles:** *This month*, *Customer due*, *Reports* (profit this month). *Profit* and *Stock value* tiles removed. The Reports tile is hidden behind the Admin PIN when profit lock is on (previously the dashboard profit was never masked).
+- **Security:** Change PIN / Disable PIN were not rate-limited (unlimited guesses) — now share the 5-try lock-out; lock screen shows tries left and a live lock-out countdown; Admin PIN must differ from the home PIN; shared, longer weak-PIN list; refunds / returns need the Admin PIN when one is set.
+- **Fixes:** lock screen accepts a hardware keyboard; icon-only buttons got labels (accessibility); POS search placeholder no longer clipped on phones.
+- Cache `v12.6.0`.
+
 ## v12.5.0 — Readable on every theme · mode button in the desktop header · richer dashboard · user list in the Sheet
 - **Fixed: text hard to see on the other themes.** Bright theme colours (especially in dark mode — e.g. Graphite, Ocean, Emerald) had white text on them (*New sale*, primary buttons, selected chips, cart bar, avatars). Every filled surface now uses a deep brand fill (`--fill`) that always carries white text (contrast ≥ 4.5), and coloured text/icons use `--acc`. Checked on all 8 themes × light/dark × phone/desktop.
 - **Dark / Light button added to the desktop header** (next to Backup and Telegram), like the phone header.

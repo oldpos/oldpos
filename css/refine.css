@@ -144,20 +144,25 @@ html:not(.classic) .sd-link:hover{text-decoration:underline}
 @media(max-width:1023px){.db-theme{display:none}}
 .db-actions{gap:10px}
 
-/* ---- dashboard: four tiles, each with a small caption ---- */
+/* ---- dashboard: three tiles, each with a small caption ---- */
 .sd-tile .sd-tt small{display:block;margin-top:2px;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sd-tile .sd-go{flex:none;font-size:11px;color:var(--muted);opacity:.55;transition:transform .15s,opacity .15s}
 .sd-tile:hover .sd-go{opacity:1;transform:translateX(2px)}
 .sd-tile .bad{color:var(--bad)}
-@media(min-width:601px){
+/* three tiles: This month · Customer due · Reports */
+.sd-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sd-tile{display:flex;align-items:center;gap:12px}
+.sd-tile .sd-tt{flex:1;min-width:0}
+.sd-tile .sd-tt b{font-size:20px;line-height:1.25}
+@media(max-width:600px){
   .sd-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sd-tiles .sd-tile:nth-child(3){grid-column:1/-1}
 }
 @media(min-width:1100px){
-  .sd-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .sd-tile{flex-direction:column;align-items:flex-start;gap:10px;padding:16px}
+  .sd-tile{flex-direction:column;align-items:flex-start;gap:10px;padding:16px;position:relative}
   .sd-tile .sd-go{position:absolute;top:16px;right:16px}
-  .sd-tile{position:relative}
   .sd-tile .sd-tt{width:100%}
+  .sd-tile .sd-tt b{font-size:22px}
 }
 @media(max-width:600px){.sd-tile .sd-tt small{font-size:11px}}
 

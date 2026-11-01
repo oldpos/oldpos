@@ -117,7 +117,7 @@
         <div class="card search-wrap pos-toolbar">
           <div class="pos-tools">
             <div class="pos-search"><i class="fas fa-magnifying-glass search-ico"></i>
-              <input id="pos-search" class="input has-ico" type="search" enterkeyhint="search" placeholder="${window.innerWidth < 700 ? 'Search products…' : 'Search product or barcode  (F3)'}" value="${esc(this.q)}" oninput="POS.search(this.value)" onkeydown="if(event.key==='Enter')POS.enter();else if(event.key==='Escape')POS.clearSearch()" autocomplete="off" autocapitalize="off" spellcheck="false">
+              <input id="pos-search" class="input has-ico" type="search" enterkeyhint="search" placeholder="${window.innerWidth < 700 ? 'Search…' : 'Search product or barcode  (F3)'}" value="${esc(this.q)}" oninput="POS.search(this.value)" onkeydown="if(event.key==='Enter')POS.enter();else if(event.key==='Escape')POS.clearSearch()" autocomplete="off" autocapitalize="off" spellcheck="false">
               <button type="button" class="pos-clear" aria-label="Clear search" title="Clear" onclick="POS.clearSearch()" ${this.q ? '' : 'hidden'}><i class="fas fa-xmark"></i></button></div>
             <div class="pos-actions" role="toolbar" aria-label="Sales tools">
               <button type="button" class="tool-btn" onclick="POS.scan()" title="Camera scan" aria-label="Camera scan"><i class="fas fa-barcode"></i><span class="tl">Scan</span></button>
@@ -287,7 +287,7 @@
           <button class="icon-btn" aria-label="Remove" title="Remove" style="width:28px;height:28px" onclick="POS.remove('${c.id}')"><i class="fas fa-xmark"></i></button></div>`).join('')
         : '<div class="empty"><i class="fas fa-bag-shopping"></i>Cart empty</div>';
       return `<div class="flex between items-c mb3"><div class="sec-title" style="margin:0"><i class="fas fa-bag-shopping ptext cart-ico"></i> Cart <span class="badge b-p">${DB.cart.reduce((s, c) => s + c.qty, 0)}</span></div>
-          <div class="flex gap1"><button class="btn btn-sm btn-ghost" onclick="POS.hold()"><i class="fas fa-pause"></i> Hold</button><button class="btn btn-sm btn-danger-soft" onclick="POS.clear()"><i class="fas fa-trash"></i></button></div></div>
+          <div class="flex gap1"><button class="btn btn-sm btn-ghost" onclick="POS.hold()"><i class="fas fa-pause"></i> Hold</button><button class="btn btn-sm btn-danger-soft" onclick="POS.clear()" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button></div></div>
         <div class="cart-items">${items}</div>
         <button type="button" class="cart-quick" onclick="App.closeDrawers();POS.quick()"><i class="fas fa-cash-register"></i> Quick sell <span class="muted xs">· item not in Products</span></button>
         <button class="btn btn-ghost btn-block mb3" onclick="POS.pickCust()"><i class="fas fa-user"></i> ${cust ? esc(cust.name) + (C.customerBalance(cust.id) > 0 ? ' · Due ' + money(C.customerBalance(cust.id)) : '') : 'Customer: Walk-in (select for due)'}</button>
@@ -338,7 +338,7 @@
     showHold() {
       if (!DB.hold.length) { toast('No held bills'); return; }
       const m = Modal.open({ title: 'Held Bills', body: DB.hold.map(h => `<div class="row" style="cursor:default"><div class="grow"><div class="t">${esc(h.label || 'Walk-in')} · ${money(h.items.reduce((s, c) => s + c.price * c.qty, 0))}</div><div class="s">${C.fmtDT(h.date)} · ${h.items.length} items</div></div>
-        <button class="btn btn-sm btn-primary" onclick="POS.restore('${h.id}',this)">Resume</button><button class="btn btn-sm btn-danger-soft" onclick="POS.dropHold('${h.id}',this)"><i class="fas fa-trash"></i></button></div>`).join('') });
+        <button class="btn btn-sm btn-primary" onclick="POS.restore('${h.id}',this)">Resume</button><button class="btn btn-sm btn-danger-soft" onclick="POS.dropHold('${h.id}',this)" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button></div>`).join('') });
       m._hold = true;
     },
     restore(id, btn) {

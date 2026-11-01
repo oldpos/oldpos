@@ -132,10 +132,11 @@
       m._rows = rows; m._sale = s; this._rm = m; this.retCalc();
       m.querySelector('#rt-ok').onclick = () => {
         const calc = Receipt.retCalc(); if (!calc.items.length) { toast('⚠️ Enter return qty'); return; }
-        askConfirm(`Refund ${money(calc.amount)} and return the items to stock?`, () => {
+        askConfirm(`Refund ${money(calc.amount)} and return the items to stock?`, () => { const run = () => {
           calc.items.forEach(i => { const p = findProduct(i.id); if (p && p.track !== false) p.stock = r2(num(p.stock) + i.qty); });
           DB.returns.push({ id: genId(), date: new Date().toISOString(), saleId: s.id, customerId: s.customerId || null, items: calc.items, amount: calc.amount, revenue: calc.revenue, cogs: calc.cogs, refundType: $('rt-type').value, note: $('rt-note').value.trim() });
           C.save('products'); C.save('returns'); Modal.closeAll(); toast('Return saved ✓'); App.refresh();
+          }; if (window.Guard && Guard.confirmPin) Guard.confirmPin(run, 'take return'); else run();   // refunds need the Admin PIN when one is set
         }, { yes: 'Yes, take return', icon: 'fa-rotate-left' });
       };
     },
@@ -242,7 +243,7 @@
           }
         } catch (_) {}
       }
-      $('view').innerHTML = `<div class="page-head"><div><h2>Reports</h2><p>Sales, profit/loss & collections</p></div><div class="flex gap2"><button class="btn btn-ghost" onclick="Rep.csv()"><i class="fas fa-file-csv"></i></button><button class="btn btn-ghost" onclick="Rep.print()"><i class="fas fa-print"></i></button></div></div>
+      $('view').innerHTML = `<div class="page-head"><div><h2>Reports</h2><p>Sales, profit/loss & collections</p></div><div class="flex gap2"><button class="btn btn-ghost" onclick="Rep.csv()" title="Download CSV" aria-label="Download CSV"><i class="fas fa-file-csv"></i></button><button class="btn btn-ghost" onclick="Rep.print()" title="Print" aria-label="Print"><i class="fas fa-print"></i></button></div></div>
       ${lockWarn}
       <div class="card pad-s mb3"><div class="chips">${[['today', 'Today'], ['yday', 'Yesterday'], ['week', '7 Days'], ['month', 'This Month'], ['all', 'All'], ['custom', 'Custom']].map(p => `<button class="chip ${this.preset === p[0] ? 'on' : ''}" onclick="Rep.setP('${p[0]}')">${p[1]}</button>`).join('')}</div>
         ${this.preset === 'custom' ? `<div class="grid2 mt2"><input type="date" class="input" value="${this.from}" onchange="Rep.from=this.value;Rep.body()"><input type="date" class="input" value="${this.to}" onchange="Rep.to=this.value;Rep.body()"></div>` : ''}</div><div id="rep-body"></div>`;
@@ -311,7 +312,7 @@
       const dstr = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       const shop = esc(DB.settings.shopName || 'My Shop');
       const payL = { cash: 'Cash', card: 'Card', bkash: 'bKash', due: 'Due', nagad: 'Nagad', mobile: 'Mobile' };
-      const tile = (k, v, go, cls, ic, sub) => `<button type="button" class="sd-tile" onclick="${go}"><em class="sd-ti"><i class="fas ${ic || 'fa-circle'}"></i></em><span class="sd-tt"><span>${k}</span><b class="${cls || ''}">${v}</b>${sub ? `<small>${sub}</small>` : ''}</span><i class="fas fa-chevron-right sd-go" aria-hidden="true"></i></button>`;
+      const tile = (k, v, go, cls, ic, sub, profit) => `<button type="button" class="sd-tile"${profit ? ' data-profit="1"' : ''} onclick="${go}"><em class="sd-ti"><i class="fas ${ic || 'fa-circle'}"></i></em><span class="sd-tt"><span>${k}</span><b class="v ${cls || ''}">${v}</b>${sub ? `<small>${sub}</small>` : ''}</span><i class="fas fa-chevron-right sd-go" aria-hidden="true"></i></button>`;
       const alertRow = (label, n, go, cls) => n ? `<button type="button" class="sd-row" onclick="${go}"><span class="sd-rl">${label}</span><span class="sd-pill ${cls}">${n}</span></button>` : '';
       const alerts = alertRow('Low stock products', lowN, "App.go('products')", 'bad') + alertRow('Expiring within 30 days', expN, "App.go('products')", 'warn') + alertRow('Customers with due', dueN, "People.cf='due';App.go('customers')", 'warn');
       const sales = recent.map(x => `<button type="button" class="sd-row" onclick="Receipt.showId('${x.id}')"><span class="sd-rl">#${C.invLabel(x)}<small>${C.fmtTime(x.date)} · ${payL[x.paymentMethod] || x.paymentMethod || 'Cash'}</small></span><span class="sd-rv ${x.due > 0 ? 'warn' : ''}">${money(x.total)}</span></button>`).join('');
@@ -323,10 +324,9 @@
       <section class="sd-card sd-hero"><div class="sd-hero-l"><span class="sd-k"><i class="fas fa-cash-register"></i> Today's sales</span><div class="sd-big">${money(td.netSales)}</div><div class="sd-sub">${bills} bill${bills === 1 ? '' : 's'}${delta}</div></div>${spark}</section>
       <div class="sd-acts"><button type="button" class="sd-act pri" onclick="App.go('pos')"><i class="fas fa-cash-register"></i><span>New sale</span></button><button type="button" class="sd-act" onclick="App.go('expenses');setTimeout(function(){try{Exp.add()}catch(e){}},80)"><i class="fas fa-wallet"></i><span>Add expense</span></button><button type="button" class="sd-act" onclick="Home.addProduct()"><i class="fas fa-box-open"></i><span>Add product</span></button></div>
       <div class="sd-tiles">
-        ${tile('This month', money(mo.netSales), "App.go('history')", '', 'fa-chart-column', mo.count + ' bill' + (mo.count === 1 ? '' : 's') + ' · Sales history')}
-        ${tile('Profit · this month', money(mo.netProfit), "App.go('reports')", mo.netProfit < 0 ? 'bad' : '', 'fa-gauge-high', (mo.netSales > 0 ? Math.round(mo.netProfit / mo.netSales * 100) + '% margin' : 'No sales yet') + ' · Reports')}
-        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '', 'fa-hand-holding-dollar', dueN + ' customer' + (dueN === 1 ? '' : 's'))}
-        ${tile('Stock value', money(C.stockValue()), "App.go('products')", '', 'fa-box-open', DB.products.length + ' product' + (DB.products.length === 1 ? '' : 's') + (lowN ? ' · ' + lowN + ' low' : ''))}
+        ${tile('This month', money(mo.netSales), "App.go('history')", '', 'fa-chart-column', mo.count + ' bill' + (mo.count === 1 ? '' : 's') + ' \u00b7 Sales history')}
+        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '', 'fa-hand-holding-dollar', dueN + ' customer' + (dueN === 1 ? '' : 's') + ' with due')}
+        ${tile('Reports', money(mo.netProfit), "App.go('reports')", mo.netProfit < 0 ? 'bad' : '', 'fa-gauge-high', 'Profit this month \u00b7 ' + (mo.netSales > 0 ? Math.round(mo.netProfit / mo.netSales * 100) + '% margin' : 'no sales yet'), true)}
       </div>
       ${guide}
       <section class="sd-card"><div class="sd-h"><h3>Last 7 days</h3><span class="sd-mut">${money(r2(days.reduce((a, d) => a + d.v, 0)))}</span></div>

@@ -26,7 +26,7 @@
       const due = C.totalCustomerDue(); const withDue = DB.customers.filter(c => C.customerBalance(c.id) > 0).length;
       $('view').innerHTML = `
       <div class="page-head"><div><h2>Customers & Due</h2><p>Due balances, collections & ledger</p></div>
-        <div class="flex gap2"><button class="btn btn-ghost" onclick="People.csvOut()"><i class="fas fa-file-csv"></i></button><button class="btn btn-primary" onclick="People.edit()"><i class="fas fa-user-plus"></i> New customer</button></div></div>
+        <div class="flex gap2"><button class="btn btn-ghost" onclick="People.csvOut()" title="Download CSV" aria-label="Download CSV"><i class="fas fa-file-csv"></i></button><button class="btn btn-primary" onclick="People.edit()"><i class="fas fa-user-plus"></i> New customer</button></div></div>
       <div class="stats"><div class="stat hl"><div class="k">Total customer due</div><div class="v">${money(due)}</div></div>
         <div class="stat"><div class="k">Total customers</div><div class="v">${DB.customers.length}</div></div>
         <div class="stat"><div class="k">Customers with due</div><div class="v ${withDue ? 'bad' : ''}">${withDue}</div></div>
@@ -78,7 +78,7 @@
         <button class="btn btn-ghost btn-block mb3" onclick="People.statement('${id}')"><i class="fas fa-print"></i> Print account statement</button>
         <div class="sec-title">Ledger</div>
         <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="r">Due +</th><th class="r">Paid −</th><th class="r">Balance</th></tr></thead><tbody>${led.length ? led.map(r => `<tr ${r.type === 'sale' ? `onclick="Receipt.showId('${r.ref}')" style="cursor:pointer"` : ''}><td class="xs">${C.fmtDate(r.date)}</td><td class="sm">${esc(r.desc)}</td><td class="r bad">${r.debit ? money(r.debit) : ''}</td><td class="r ok">${r.credit ? money(r.credit) : ''}</td><td class="r fw6">${money(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>'}</tbody></table></div>`,
-        foot: `<button class="btn btn-danger-soft" onclick="People.del('${id}')"><i class="fas fa-trash"></i></button><button class="btn" onclick="People.edit('${id}',()=>{Modal.closeAll();People.detail('${id}');App.refresh()})"><i class="fas fa-pen"></i> Edit</button>` });
+        foot: `<button class="btn btn-danger-soft" onclick="People.del('${id}')" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button><button class="btn" onclick="People.edit('${id}',()=>{Modal.closeAll();People.detail('${id}');App.refresh()})"><i class="fas fa-pen"></i> Edit</button>` });
     },
     collect(id) {
       const c = findCustomer(id); const b = C.customerBalance(id);
@@ -163,7 +163,7 @@
       Modal.open({ title: s.name, size: 'wide', body: `<div class="card pad mb3 tc"><div class="muted xs">Payable to suppliers</div><div class="xxl fw7 ${b > 0 ? 'bad' : 'ok'}">${money(Math.max(0, b))}</div><div class="xs muted mt1">${esc(s.phone || '')} ${esc(s.address || '')}</div></div>
         <button class="btn btn-primary btn-block mb3" onclick="Buy.pay('${id}')"><i class="fas fa-money-bill-transfer"></i> Make payment</button>
         <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="r">Payable +</th><th class="r">Payment −</th><th class="r">Balance</th></tr></thead><tbody>${led.length ? led.map(r => `<tr><td class="xs">${C.fmtDate(r.date)}</td><td class="sm">${esc(r.desc)}</td><td class="r bad">${r.debit ? money(r.debit) : ''}</td><td class="r ok">${r.credit ? money(r.credit) : ''}</td><td class="r fw6">${money(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>'}</tbody></table></div>`,
-        foot: `<button class="btn btn-danger-soft" onclick="Buy.delSup('${id}')"><i class="fas fa-trash"></i></button><button class="btn" onclick="Buy.editSup('${id}',()=>{Modal.closeAll();Buy.supDetail('${id}');App.refresh()})"><i class="fas fa-pen"></i> Edit</button>` });
+        foot: `<button class="btn btn-danger-soft" onclick="Buy.delSup('${id}')" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button><button class="btn" onclick="Buy.editSup('${id}',()=>{Modal.closeAll();Buy.supDetail('${id}');App.refresh()})"><i class="fas fa-pen"></i> Edit</button>` });
     },
     pay(id) {
       const s = findSupplier(id); const b = C.supplierBalance(id);

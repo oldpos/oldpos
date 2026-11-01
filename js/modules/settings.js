@@ -156,7 +156,8 @@
     return false;
   }
   const Lock = window.Lock = {
-    hiddenAt: 0, el: null, hashFor: hashPin,
+    hiddenAt: 0, el: null, hashFor: hashPin, verify: verifyPin,
+    isWeak(p) { return /^(\d)\1{3}$/.test(p) || ['0123','1234','2345','3456','4567','5678','6789','9876','8765','7654','6543','5432','4321','3210','1212','2580','1122','0852','1357','2468','0007','1004','1010','2000','2001','1990','1991','1992','1993','1994','1995','1996','1997','1998','1999','2002','2003','2004','2005','2006','2007','2008','2009','2010','2011','2012','2013','2014','2015','2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026','2027','2028'].indexOf(p) >= 0; },
     toggleUI(el) {
       const on = el.checked; el.checked = this.has();      // reverts visually until the PIN flow succeeds
       if (on) this.setup(); else this.remove();
@@ -181,26 +182,47 @@
       return 'bad';
     },
     show(done) {
-      if (this.el) return; let pin = '';
-      const el = document.createElement('div'); el.className = 'lock';
-      el.innerHTML = `<div class="logo" style="width:72px;height:72px"><img class="logo-img" src="assets/icons/icon-192.png" alt="Old POS" draggable="false"></div><h2>${esc(DB.settings.shopName)}</h2><p>Unlock with PIN</p><div class="dots" id="lk-dots"><i></i><i></i><i></i><i></i></div>
-        <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? '<span></span>' : `<button type="button" data-k="${k}">${k}</button>`).join('')}</div>
+      if (this.el) return; let pin = '', busy = false, tick = null;
+      const el = document.createElement('div'); el.className = 'lock'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Enter PIN to unlock');
+      const order = (window.Keypad ? Keypad.digits() : [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
+      const keys = order.slice(0, 9).concat(['', order[9], '⌫']);
+      el.innerHTML = `<div class="logo" style="width:72px;height:72px"><img class="logo-img" src="assets/icons/icon-192.png" alt="Old POS" draggable="false"></div><h2>${esc(DB.settings.shopName)}</h2><p>Unlock with PIN</p><div class="dots" id="lk-dots"><i></i><i></i><i></i><i></i></div><div class="lk-msg" id="lk-msg" role="alert"></div>
+        <div class="keypad">${keys.map(k => k === '' ? '<span></span>' : `<button type="button" data-k="${k}"${k === '⌫' ? ' aria-label="Backspace"' : ''}>${k}</button>`).join('')}</div>
         <button type="button" id="lk-forgot" style="margin-top:26px;background:none;border:0;color:#fff;opacity:.7;font-size:13px;cursor:pointer;text-decoration:underline">Forgot PIN?</button>`;
       document.body.appendChild(el); this.el = el; syncLock();
-      const dots = el.querySelectorAll('#lk-dots i');
+      const dots = el.querySelectorAll('#lk-dots i'), msg = el.querySelector('#lk-msg');
       const paint = () => dots.forEach((d, i) => d.classList.toggle('f', i < pin.length));
-      el.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
-        const k = b.dataset.k; if (k === '⌫') pin = pin.slice(0, -1); else if (pin.length < 4) pin += k; paint();
+      const leftS = () => Math.max(0, Math.ceil((this.until - Date.now()) / 1000));
+      const fmtWait = n => n >= 60 ? Math.ceil(n / 60) + ' min' : n + ' s';
+      const showWait = () => {
+        const n = leftS();
+        if (n > 0) { msg.textContent = '⚠️ Too many wrong attempts — try again in ' + fmtWait(n); if (!tick) tick = setInterval(showWait, 1000); }
+        else { msg.textContent = ''; if (tick) { clearInterval(tick); tick = null; } }
+      };
+      const close = () => { if (tick) clearInterval(tick); window.removeEventListener('keydown', onKey, true); el.remove(); this.el = null; syncLock(); };
+      const press = async k => {
+        if (busy) return;
+        if (leftS() > 0) { pin = ''; paint(); showWait(); return; }
+        if (k === '⌫') pin = pin.slice(0, -1); else if (/^\d$/.test(k) && pin.length < 4) pin += k; else return;
+        paint(); msg.textContent = '';
         if (pin.length === 4) {
-          if (Date.now() < this.until) { toast('⚠️ Too many wrong attempts — ' + Math.ceil((this.until - Date.now()) / 1000) + ' seconds, try later'); pin = ''; paint(); return; }
-          if (await verifyPin(pin)) { this.fails = 0; try { localStorage.removeItem('esypos_lk_l'); } catch (_) {} el.remove(); this.el = null; syncLock(); done && done(); }
-          else {
-            this.fails = this.fails + 1;
-            if (this.fails >= 5) { const secs = this.penalty(); toast('⚠️ Too many wrong attempts — wait ' + (secs >= 60 ? Math.round(secs / 60) + ' minutes' : secs + ' seconds')); }
-            const d = el.querySelector('#lk-dots'); d.classList.add('shake'); if (navigator.vibrate) navigator.vibrate(120); setTimeout(() => { d.classList.remove('shake'); pin = ''; paint(); }, 450);
-          }
+          busy = true;
+          const ok = await verifyPin(pin);
+          if (ok) { this.fails = 0; try { localStorage.removeItem('esypos_lk_l'); } catch (_) {} close(); busy = false; done && done(); return; }
+          this.fails = this.fails + 1;
+          if (this.fails >= 5) { this.penalty(); showWait(); } else msg.textContent = '⚠️ Wrong PIN — ' + (5 - this.fails) + ' tr' + (5 - this.fails === 1 ? 'y' : 'ies') + ' left';
+          const d = el.querySelector('#lk-dots'); d.classList.add('shake'); if (navigator.vibrate) navigator.vibrate(120);
+          setTimeout(() => { d.classList.remove('shake'); pin = ''; paint(); busy = false; }, 450);
         }
-      });
+      };
+      const onKey = e => {                                          // hardware keyboard (desktop)
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (/^\d$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); press(e.key); }
+        else if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); press('⌫'); }
+      };
+      window.addEventListener('keydown', onKey, true);
+      el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => press(b.dataset.k));
+      showWait();
       el.querySelector('#lk-forgot').onclick = () => {
         if (window.Cloud && Cloud.isOn()) Cloud.resetPin();
         else askConfirm('Without a Google backup, the only way to remove a forgotten PIN is to wipe all data on this device. Continue?', () => { wipeAllData(); }, { danger: true, yes: 'Wipe & Reset Data', title: 'Reset PIN' });
@@ -208,19 +230,19 @@
     },
     setup() {
       const has = this.has();
-      const m = Modal.open({ title: has ? 'Change PIN' : 'Set PIN', body: `${has ? '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" inputmode="numeric" maxlength="4" class="input"></div>' : ''}
-        <div class="field"><label class="label">New PIN (4 digits)</label><input id="pn-new" type="password" inputmode="numeric" maxlength="4" class="input" ${has ? '' : 'autofocus'}></div>
-        <div class="field"><label class="label">Re-enter</label><input id="pn-new2" type="password" inputmode="numeric" maxlength="4" class="input"></div>
+      const m = Modal.open({ title: has ? 'Change PIN' : 'Set PIN', body: `${has ? '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' : ''}
+        <div class="field"><label class="label">New PIN (4 digits)</label><input id="pn-new" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" ${has ? '' : 'autofocus'}></div>
+        <div class="field"><label class="label">Re-enter</label><input id="pn-new2" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>
         <p class="xs muted">Forgot PIN? Reset needs cloud backup.</p>`, foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="pn-ok">Save</button>` });
       m.querySelector('#pn-ok').onclick = async () => {
-        if (has && !(await verifyPin($('pn-old').value))) { toast('⚠️ Current PIN is wrong'); return; }
-        const a = $('pn-new').value, b = $('pn-new2').value; if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (/^(\d)\1{3}$/.test(a) || ['0123','1234','2345','3456','4567','5678','6789','9876','8765','7654','6543','5432','4321','3210','1212','2580','1122','2020','2021','2022','2023','2024','2025','2026'].indexOf(a) >= 0) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
+        if (has) { const r = await Lock.check($('pn-old').value); if (r !== 'ok') { toast(r === 'wait' ? '⚠️ Too many wrong attempts — try again later' : '⚠️ Current PIN is wrong'); $('pn-old').value = ''; return; } }
+        const a = $('pn-new').value, b = $('pn-new2').value; if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (Lock.isWeak(a)) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
         const salt = C.genId(); DB.settings.pinSalt = salt; DB.settings.pinHash = await hashPin(a, salt); C.save('settings'); Modal.close(m); toast('PIN set ✓'); App.refresh();
       };
     },
     remove() {
-      const m = Modal.open({ title: 'Disable PIN', body: '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" inputmode="numeric" maxlength="4" class="input" autofocus></div>', foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-bad" id="pn-ok">Disable PIN</button>` });
-      m.querySelector('#pn-ok').onclick = async () => { if (!(await verifyPin($('pn-old').value))) { toast('⚠️ Wrong PIN'); return; } DB.settings.pinHash = ''; DB.settings.pinSalt = ''; C.save('settings'); Modal.close(m); toast('PIN disabled'); App.refresh(); };
+      const m = Modal.open({ title: 'Disable PIN', body: '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" autofocus></div>', foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-bad" id="pn-ok">Disable PIN</button>` });
+      m.querySelector('#pn-ok').onclick = async () => { const r = await Lock.check($('pn-old').value); if (r !== 'ok') { toast(r === 'wait' ? '⚠️ Too many wrong attempts — try again later' : '⚠️ Wrong PIN'); $('pn-old').value = ''; return; } DB.settings.pinHash = ''; DB.settings.pinSalt = ''; C.save('settings'); Modal.close(m); toast('PIN disabled'); App.refresh(); };
     }
   };
   const SERVICES = ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb'];
@@ -397,7 +419,9 @@
       ${sec('security', `<div class="card pad mb3" id="screen-lock-card"><div class="sec-title"><i class="fas fa-mobile-screen-button ptext"></i> 1. Home screen lock</div>
         <p class="muted sm mb3">${Lock.has() ? 'ON — this PIN is asked every time the app opens and after idle.' : 'OFF — turn on to ask a PIN every time the app opens.'}</p>
         <label class="switch"><span class="sm fw6"><i class="fas fa-lock ptext"></i> Home screen lock</span><input type="checkbox" ${Lock.has() ? 'checked' : ''} onchange="Lock.toggleUI(this)"></label>
-        ${Lock.has() ? '<div class="flex gap2"><button class="btn btn-ghost grow" onclick="Lock.setup()">Change PIN</button><button class="btn btn-ghost grow" onclick="Lock.lockNow()">Lock now</button></div>' : ''}</div>`)}
+        ${Lock.has() ? '<div class="flex gap2"><button class="btn btn-ghost grow" onclick="Lock.setup()">Change PIN</button><button class="btn btn-ghost grow" onclick="Lock.lockNow()">Lock now</button></div>' : ''}
+        <label class="switch mt3"><span class="sm fw6"><i class="fas fa-shuffle ptext"></i> Scramble keypad digits</span><input type="checkbox" ${DB.settings.keypadShuffle ? 'checked' : ''} onchange="Keypad.setScramble(this.checked)"></label>
+        <p class="xs muted mt2">PINs are always typed on the secure on-screen keypad, never on the phone keyboard. Scrambling moves the digits every time so nobody can copy the pattern of your taps.</p></div>`)}
       ${sec('printers', `${window.LP ? LP.cardHTML() : ''}
       <div class="card pad mb3"><div class="sec-title"><i class="fab fa-bluetooth-b ptext"></i> Bluetooth printer</div><div class="mb3" id="bt-status"></div>
         <div class="field"><label class="label">Print mode</label><select class="input" onchange="DB_.btMode(this.value)"><option value="image" ${s.btMode !== 'text' ? 'selected' : ''}>Image mode — supports all languages (recommended)</option><option value="text" ${s.btMode === 'text' ? 'selected' : ''}>Text mode — English only, faster</option></select></div>

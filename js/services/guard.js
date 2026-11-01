@@ -38,28 +38,29 @@
     setup() {
       const has = this.has();
       const m = Modal.open({ title: has ? 'Change Admin PIN' : 'Set Admin PIN', body:
-        (has ? '<div class="field"><label class="label">Current Admin PIN</label><input id="ad-old" type="password" inputmode="numeric" maxlength="4" class="input"></div>' : '') +
-        '<div class="field"><label class="label">New Admin PIN (4 digits)</label><input id="ad-new" type="password" inputmode="numeric" maxlength="4" class="input"></div>' +
-        '<div class="field"><label class="label">Re-enter</label><input id="ad-new2" type="password" inputmode="numeric" maxlength="4" class="input"></div>' +
+        (has ? '<div class="field"><label class="label">Current Admin PIN</label><input id="ad-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' : '') +
+        '<div class="field"><label class="label">New Admin PIN (4 digits)</label><input id="ad-new" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' +
+        '<div class="field"><label class="label">Re-enter</label><input id="ad-new2" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' +
         '<p class="xs muted">Keep this PIN to yourself — it is different from the home-screen PIN your staff may know.</p>',
         foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="ad-ok">Save</button>' });
       m.querySelector('#ad-ok').onclick = async () => {
         if (has && (await Admin.check($('ad-old').value)) !== 'ok') { toast('⚠️ Current Admin PIN is wrong'); return; }
         const a = $('ad-new').value, b = $('ad-new2').value;
-        if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (/^(\d)\1{3}$/.test(a) || ['0123','1234','2345','3456','4567','5678','6789','9876','8765','7654','6543','5432','4321','3210','1212','2580','1122','2020','2021','2022','2023','2024','2025','2026'].indexOf(a) >= 0) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
+        if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (Lock.isWeak(a)) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
+        if (Lock.has() && await Lock.verify(a)) { toast('⚠️ Admin PIN must be different from the home-screen PIN'); return; }
         const salt = C.genId(); DB.settings.adminSalt = salt; DB.settings.adminHash = await Lock.hashFor(a, salt); C.save('settings');
         log('Admin PIN ' + (has ? 'changed' : 'set')); Modal.close(m); toast('Admin PIN saved ✓'); App.refresh();
       };
     },
     remove() {
-      const m = Modal.open({ title: 'Remove Admin PIN', body: '<p class="muted sm mb3">All section locks stop working until you set a new Admin PIN.</p><div class="field"><label class="label">Current Admin PIN</label><input id="ad-old" type="password" inputmode="numeric" maxlength="4" class="input" autofocus></div>',
+      const m = Modal.open({ title: 'Remove Admin PIN', body: '<p class="muted sm mb3">All section locks stop working until you set a new Admin PIN.</p><div class="field"><label class="label">Current Admin PIN</label><input id="ad-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" autofocus></div>',
         foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-bad" id="ad-ok">Remove</button>' });
       m.querySelector('#ad-ok').onclick = async () => { if ((await Admin.check($('ad-old').value)) !== 'ok') { toast('⚠️ Wrong Admin PIN'); return; } DB.settings.adminHash = ''; DB.settings.adminSalt = ''; C.save('settings'); log('Admin PIN removed'); Modal.close(m); toast('Admin PIN removed'); App.refresh(); };
     },
     forgot() {                                       // owner recovery: Google backup, or the home-screen PIN
       if (window.Cloud && Cloud.isOn()) { Cloud.resetPin(); return; }
       if (Lock.has()) {
-        const m = Modal.open({ title: 'Reset Admin PIN', body: '<p class="muted sm mb3">Enter the home-screen PIN to remove the Admin PIN, then set a new one.</p><input id="ad-sp" type="password" inputmode="numeric" maxlength="4" class="input sl-input">',
+        const m = Modal.open({ title: 'Reset Admin PIN', body: '<p class="muted sm mb3">Enter the home-screen PIN to remove the Admin PIN, then set a new one.</p><input id="ad-sp" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input sl-input">',
           foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="ad-ok">Reset</button>' });
         m.querySelector('#ad-ok').onclick = async () => { if ((await Lock.check($('ad-sp').value)) !== 'ok') { toast('⚠️ Wrong PIN'); return; } DB.settings.adminHash = ''; DB.settings.adminSalt = ''; C.save('settings'); log('Admin PIN reset'); Modal.close(m); toast('Admin PIN removed — set a new one'); App.refresh(); };
         return;
@@ -81,7 +82,7 @@
     const m = Modal.open({
       title: 'Admin PIN required',
       body: '<p class="muted sm mb3">Enter the Admin PIN to continue.</p>' +
-        '<input id="sl-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" class="input sl-input" placeholder="••••" autofocus>' +
+        '<input id="sl-pin" type="password" data-pin="1" readonly inputmode="none" maxlength="4" autocomplete="off" class="input sl-input" placeholder="••••" autofocus>' +
         '<div class="xs sl-msg" id="sl-msg" role="alert"></div>',
       foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-ghost" id="sl-fg">Forgot?</button><button class="btn btn-primary" id="sl-ok"><i class="fas fa-lock"></i> Unlock</button>'
     });
@@ -93,7 +94,7 @@
       else {
         log(r === 'wait' ? 'PIN lock-out (too many wrong attempts)' : 'Wrong PIN for ' + (name || 'section'));
         msg.textContent = r === 'wait' ? '⚠️ Too many wrong attempts. Wait ' + Admin.wait() + ' seconds.' : '⚠️ Wrong PIN';
-        inp.value = ''; if (navigator.vibrate) navigator.vibrate(100); inp.focus();
+        inp.value = ''; if (navigator.vibrate) navigator.vibrate(100); if (window.Keypad) Keypad.refresh(); inp.focus();
       }
       busy = false;
     };
@@ -129,7 +130,7 @@
   const profitLocked = () => !!(Admin.has() && lockedList().indexOf('profit') >= 0 && Date.now() > profitOpen);
   function maskProfit() {
     const view = $('view'); if (!view || !profitLocked()) return;
-    view.querySelectorAll('.stat[data-profit],.hm[data-profit]').forEach(el => {
+    view.querySelectorAll('.stat[data-profit],.hm[data-profit],.sd-tile[data-profit]').forEach(el => {
       const v = el.querySelector('.v'); if (!v || el.classList.contains('stat-locked')) return;
       el.classList.add('stat-locked'); el.setAttribute('role', 'button'); el.tabIndex = 0;
       el.setAttribute('aria-label', 'Profit hidden. Tap to enter PIN');
