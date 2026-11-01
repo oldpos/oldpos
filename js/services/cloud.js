@@ -219,11 +219,12 @@
       }
       set(KEY.email, u.email || ''); set(KEY.name, u.name || ''); set(KEY.pic, u.picture || '');
       set(KEY.on, '1'); set(KEY.welcomed, '1'); try { window.Safety && Safety.startSession(); } catch (_) {} closeWelcome(); setStatus('syncing');
+      try { window.Guard && Guard.refreshCount(); } catch (_) {}   // counts this Google account once
       await afterSignIn();
     } catch (e) { fail(e, true); }
   }
   // Device identity + user-counter markers survive Log out, so signing in again never counts as a "new user" (v12.0.0)
-  const KEEP_ON_SIGNOUT = /^(esypos_theme|esypos_uid|esypos_uc|esypos_uc_reg|esypos_uc_dev|esypos_pwa_|esypos_ios_guide)/;
+  const KEEP_ON_SIGNOUT = /^(esypos_theme|esypos_skin|esypos_design|esypos_uid|esypos_uc|esypos_pwa_|esypos_ios_guide)/;
   function wipeLocal() {
     try { Object.keys(LS).forEach(k => { if (/^(esypos_|propos_)/.test(k) && !KEEP_ON_SIGNOUT.test(k) && k !== KEY.client) LS.removeItem(k); }); } catch (_) {}
     clearTok();
@@ -360,6 +361,34 @@
     const m = Modal.open({ title: 'Google Drive Cloud Backup', body: '<div class="js-cloud-body"></div>' }); renderUI(); return m;
   }
   function closeWelcome() { const w = $('welcome'); if (w) { w.classList.add('out'); setTimeout(() => w.remove(), 250); } document.body.classList.remove('gated'); document.documentElement.classList.remove('needs-login'); if (window.syncLock) syncLock(); }
+  // ---- Auto-detect: a user who already registered and is still signed in to Google on this browser is recognised (Google One Tap, no password).
+  //      The button then reads "Continue as <name>" and signs in with that account. Nothing is stored except the e-mail hint on this device. ----
+  function detectAccount(el) {
+    if (!clientId() || !navigator.onLine || isOn()) return;
+    const label = (u) => {
+      const go = el.querySelector('#w-go'), t = go && go.querySelector('span'); if (!go || !t) return;
+      t.textContent = 'Continue as ' + (u.given_name || u.name || u.email);
+      go.title = u.email || '';
+      const sm = el.querySelector('#w-msg'); if (sm) sm.textContent = '';
+    };
+    loadGIS().then(() => new Promise(r => { if (google.accounts.id) return r(); const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = r; s.onerror = r; document.head.appendChild(s); })).then(() => {
+      if (!(window.google && google.accounts && google.accounts.id)) return;
+      google.accounts.id.initialize({
+        client_id: clientId(), auto_select: true, cancel_on_tap_outside: false, use_fedcm_for_prompt: true,
+        callback: r => {
+          try {
+            const b = r.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const u = JSON.parse(decodeURIComponent(escape(atob(b + '==='.slice((b.length + 3) % 4)))));
+            if (!u || !u.email) return;
+            set(KEY.email, u.email); label(u);                       // the e-mail is only a sign-in hint until the user finishes signing in
+            const go = el.querySelector('#w-go');
+            if (go && !go.disabled && navigator.userActivation && navigator.userActivation.isActive) go.click();
+          } catch (_) {}
+        }
+      });
+      google.accounts.id.prompt();
+    }).catch(() => {});
+  }
   function showGate(mode) {
     if ($('welcome')) return;
     const restore = mode === 'restore';
@@ -477,6 +506,7 @@
       const g = $('w-go'); if (g && !el.classList.contains('out')) { g.disabled = false; g.classList.remove('busy'); msg.textContent = navigator.onLine ? 'Sign-in was not completed. Please try again.' : 'No internet connection. Connect to the internet to sign in.'; }
     };
     const other = el.querySelector('#w-other'); if (other) other.onclick = () => finishSignOut();
+    if (!restore) detectAccount(el);
     if (window.syncLock) syncLock();
   }
   function setup() {

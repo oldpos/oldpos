@@ -2,6 +2,14 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.3.0 — Fresh user count · account auto-detect · colour themes · modern dashboard
+- **Counter starts from zero.** It now counts **Google accounts** (one account = one user, anonymous fingerprint — the e-mail is never stored) in a new sheet tab `users`. Old numbers and `userCountOffset` are ignored. Updated `tools/user-counter.gs` (+ `resetToZero()`), `tools/SETUP-bn.md`.
+- Users who registered earlier keep all their data (it lives in their own Google Drive); they are counted once, anew, when they sign in.
+- **Auto-detect:** a returning user who is still signed in to Google is recognised (Google One Tap) and the button reads *Continue as <name>*.
+- **Themes:** Settings → Appearance now shows a theme gallery — Classic (default), Emerald, Ocean, Sunset, Royal, Rose, Graphite and Original (old v10.7). Light / Dark / Auto mode works on top of every theme. New `css/themes.css`.
+- **Dashboard** a little more modern but still simple: avatar header, tinted sales card with 7-day sparkline, icon tiles, rounded bars.
+- Counter URL set in `js/core/config.js`. Cache `v12.3.0`.
+
 ## v12.2.0 — Simple dashboard · plain live user counter
 - **Dashboard redesigned:** one calm layout (today's sales, 3 numbers, 7-day bars, recent sales, things that need attention). Flat cards, light weights, no gradients, same on phone and desktop. New `css/simple.css`.
 - **Total users is just a number:** the Users page and the tap-to-open link are gone (`users.js` removed). Only the total is shown.

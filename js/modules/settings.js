@@ -341,7 +341,7 @@
         ['shop', 'fa-store', 'Shop info', 'Name, address, phone, currency'],
         ['billing', 'fa-receipt', 'Billing & receipt', 'Tax, invoice, receipt text, paper'],
         ['barcode', 'fa-barcode', 'Barcode', 'Prefix, format, counter'],
-        ['appearance', 'fa-palette', 'Appearance & sound', 'Theme, sound, vibration'],
+        ['appearance', 'fa-palette', 'Appearance & sound', 'Themes, dark mode, sound'],
         ['security', 'fa-lock', 'Security', 'PIN lock'],
         ['printers', 'fa-print', 'Printers', 'Label and Bluetooth receipt printer'],
         ['backup', 'fa-cloud-arrow-up', 'Backup & data', 'Google Drive, backup file, reset'],
@@ -387,10 +387,11 @@
         <div class="field"><label class="label">Next barcode number</label><input id="st-bcnext" type="number" min="1" step="1" class="input" value="${parseInt(s.nextBarcode, 10) || 1000001}"><p class="xs muted mt1">Next code: <b>${esc((window.BarcodeGen ? BarcodeGen.uniqueCode(s.barcodePrefix || 'ESY', s.nextBarcode) : ''))}</b> · each Generate uses this number, then adds 1</p></div>
         ${SAVE}</div>`)}
       ${sec('appearance', `<div class="card pad mb3">
-        <div class="field"><label class="label">Design</label><div class="design-pick" role="group" aria-label="Design">
-          <button type="button" data-d="modern" class="${window.Design && Design.mode === 'classic' ? '' : 'on'}" onclick="Design.set('modern')"><span class="dp-sw dp-modern" style="display:block"></span><b>Modern</b><small>Flat, clean (current)</small></button>
-          <button type="button" data-d="classic" class="${window.Design && Design.mode === 'classic' ? 'on' : ''}" onclick="Design.set('classic')"><span class="dp-sw dp-classic" style="display:block"></span><b>Classic</b><small>Original v10.7 look</small></button></div></div>
-        <div class="field"><label class="label">Theme</label><select id="theme-select" class="input" onchange="Theme.set(this.value)"><option value="auto">Auto (device setting)</option><option value="light">Light mode</option><option value="dark">Dark mode</option></select></div>
+        <div class="field"><label class="label">Theme</label>${window.Skin ? Skin.html() : ''}<p class="xs muted mt2">Pick a colour theme — it changes the whole software instantly. <b>Classic</b> is the default.</p></div>
+        <div class="field"><label class="label">Mode</label><div class="mode-seg" role="group" aria-label="Mode">
+          <button type="button" data-m="auto" class="${Theme.mode === 'auto' ? 'on' : ''}" onclick="Theme.set('auto')"><i class="fas fa-mobile-screen"></i> Auto</button>
+          <button type="button" data-m="light" class="${Theme.mode === 'light' ? 'on' : ''}" onclick="Theme.set('light')"><i class="fas fa-sun"></i> Light</button>
+          <button type="button" data-m="dark" class="${Theme.mode === 'dark' ? 'on' : ''}" onclick="Theme.set('dark')"><i class="fas fa-moon"></i> Dark</button></div></div>
         <label class="switch"><span class="sm fw6"><i class="fas fa-volume-high ptext"></i> Click sound</span><input type="checkbox" ${Sound.isEnabled() ? 'checked' : ''} onchange="Sound.setEnabled(this.checked)"></label>
         ${Haptic.supported() ? `<label class="switch mt2"><span class="sm fw6"><i class="fas fa-mobile-screen ptext"></i> Vibration feedback</span><input type="checkbox" ${Haptic.isEnabled() ? 'checked' : ''} onchange="Haptic.setEnabled(this.checked)"></label>` : ''}</div>`)}
       ${sec('security', `<div class="card pad mb3" id="screen-lock-card"><div class="sec-title"><i class="fas fa-mobile-screen-button ptext"></i> 1. Home screen lock</div>

@@ -1,4 +1,4 @@
-/* Old POS Guard: section lock for staff + anonymous user counter (total only, one device = one user, Google Sheet).
+/* Old POS Guard: section lock for staff + anonymous user counter (total only, one Google account = one user, Google Sheet).
    - Section lock: owner picks which sections need the PIN (Settings -> Section lock). Salesmen stay on the Sales Counter.
    - User counter: each device registers one random anonymous ID (no name, phone, shop data) in YOUR Google Sheet through
      an Apps Script; the app shows the total. Set userCounterApi in js/core/config.js (see tools/SETUP-bn.md). */
@@ -203,46 +203,53 @@
     }
   };
 
-  /* ---- user counter (Google Apps Script + Google Sheet) ----
-     Every visiting device is counted ONCE: the id comes from the device itself (Safety.deviceId, kept in 3 places), so login / logout /
-     clearing data never counts it again. No sign-in needed; bots are ignored. Only the total is shown, and it refreshes live
-     (one light request a minute while the app is open). The Sheet keeps one row per device id — see tools/user-counter.gs and tools/SETUP-bn.md. */
+  /* ---- user counter v3 (Google Apps Script + Google Sheet) ----
+     Counts Google ACCOUNTS, once each, starting from zero. The id is an anonymous fingerprint of the signed-in e-mail
+     (SHA-256, cut to 32 characters) — the e-mail itself never leaves the device. Signing in, out or re-installing never counts twice.
+     Visitors who are not signed in only READ the total. It refreshes live (one light request a minute while the app is open).
+     The Sheet keeps one row per account — see tools/user-counter.gs and tools/SETUP-bn.md. */
   const LS = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} } };
   const cfg = () => window.PROPOS_CONFIG || {};
   const api = () => ((cfg().userCounterApi) || '').trim();
   const BOT = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|phantom|puppeteer|playwright/i;
   const human = () => { try { return !navigator.webdriver && !BOT.test(navigator.userAgent || ''); } catch (_) { return true; } };
+  const K_TOTAL = 'esypos_uc3', K_ID = 'esypos_uc3_id';                  // new keys: the old cached number is simply ignored
   function pill() {
-    const off = parseInt(cfg().userCountOffset, 10) || 0;
-    const n = (parseInt(LS.get('esypos_uc') || '0', 10) || 0) + off;
-    document.querySelectorAll('.js-ucount').forEach(e => { e.textContent = n > 0 ? n.toLocaleString('en-US') : '—'; });
+    const raw = LS.get(K_TOTAL), n = raw === null ? null : (parseInt(raw, 10) || 0);
+    document.querySelectorAll('.js-ucount').forEach(e => { e.textContent = n === null ? '—' : n.toLocaleString('en-US'); });
   }
-  async function viaScript(a, dev, canReg, signal) {
-    const legacy = LS.get('esypos_uc_reg') === '1';                       // counted by an older version → already inside userCountOffset
-    if (legacy && LS.get('esypos_uc_dev') !== dev) LS.set('esypos_uc_dev', dev);
-    const done = LS.get('esypos_uc_dev') === dev || !canReg;
-    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + (done ? 'a=count' : 'a=hit&id=' + encodeURIComponent(dev)), { signal, cache: 'no-store' });
+  async function accountId() {
+    const em = (LS.get('esypos_g_email') || '').trim().toLowerCase();
+    if (!em || LS.get('esypos_g_on') !== '1' || !(window.crypto && crypto.subtle)) return null;
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('oldpos-user-v3|' + em));
+    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  }
+  async function viaScript(a, id, signal) {
+    const done = !id || LS.get(K_ID) === id;
+    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + (done ? 'a=count' : 'a=hit&id=' + encodeURIComponent(id)), { signal, cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
     if (!j || !j.ok) return;
-    if (!done) LS.set('esypos_uc_dev', dev);                              // remembered only after the server confirmed
-    const old = parseInt(LS.get('esypos_uc') || '0', 10) || 0;
-    if (typeof j.total === 'number' && j.total >= old) LS.set('esypos_uc', String(j.total));   // never goes down
+    if (!done) LS.set(K_ID, id);                                          // remembered only after the server confirmed
+    if (typeof j.total === 'number') {
+      const old = parseInt(LS.get(K_TOTAL) || '0', 10) || 0;
+      LS.set(K_TOTAL, String(Math.max(old, j.total)));                   // never goes down on screen
+    }
   }
   let busy = false, lastAt = 0;
-  async function count() {
+  async function count(force) {
     pill();
     if (!api() || !navigator.onLine) return;
-    if (busy || Date.now() - lastAt < 15000) return;      // never two requests at once, never more than one every 15 s
+    if (busy || (!force && Date.now() - lastAt < 15000)) return;         // never two requests at once, never more than one every 15 s
     busy = true; lastAt = Date.now();
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
     try {
-      const dev = window.Safety ? await Safety.deviceId() : null;
-      if (dev) await viaScript(api(), dev, human(), ctl.signal);
+      const id = human() ? await accountId() : null;
+      await viaScript(api(), id, ctl.signal);
     } catch (_) { /* offline or blocked: keep the last known number */ }
     clearTimeout(to); busy = false; pill();
   }
 
-  Guard.refreshCount = () => { count(); };
+  Guard.refreshCount = () => { count(true); };
   function start() {
     hook(); pill(); setTimeout(count, 1200);
     window.addEventListener('online', count);

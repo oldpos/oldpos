@@ -98,6 +98,8 @@
       document.querySelectorAll('meta[name=theme-color]').forEach(m => { m.removeAttribute('media'); m.content = this.isDark() ? '#0d1628' : '#edf2fd'; });
       document.querySelectorAll('.theme-ico').forEach(i => { i.className = 'theme-ico fas ' + (this.isDark() ? 'fa-sun' : 'fa-moon'); });
       const s = document.getElementById('theme-select'); if (s) s.value = this.mode;
+      document.querySelectorAll('.mode-seg button').forEach(b => b.classList.toggle('on', b.dataset.m === this.mode));
+      if (window.Skin) { const cs = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); if (cs) document.querySelectorAll('meta[name=theme-color]').forEach(m => { m.content = cs; }); }
     },
     set(mode) { this.mode = mode; try { localStorage.setItem('esypos_theme', mode); } catch (_) {} this.apply(); },
     toggle() { this.set(this.isDark() ? 'light' : 'dark'); }
@@ -113,11 +115,42 @@
     set(mode) { this.mode = mode === 'classic' ? 'classic' : 'modern'; try { localStorage.setItem('esypos_design', this.mode); } catch (_) {} this.apply(); }
   };
   window.Design = Design;
+  /* Skin: colour themes. "classic" = the default blue look. "original" = the old v10.7 layout (Design 'classic'). Others set <html data-skin>. */
+  const SKINS = [
+    { id: 'classic', name: 'Classic', note: 'Default blue', c: '#2563eb', bg: '#f3f6fb' },
+    { id: 'emerald', name: 'Emerald', note: 'Fresh green', c: '#059669', bg: '#f1f8f5' },
+    { id: 'ocean', name: 'Ocean', note: 'Calm teal', c: '#0891b2', bg: '#f0f7fa' },
+    { id: 'sunset', name: 'Sunset', note: 'Warm orange', c: '#ea580c', bg: '#fbf6f2' },
+    { id: 'royal', name: 'Royal', note: 'Deep violet', c: '#7c3aed', bg: '#f6f4fb' },
+    { id: 'rose', name: 'Rose', note: 'Bold crimson', c: '#e11d48', bg: '#fbf4f5' },
+    { id: 'graphite', name: 'Graphite', note: 'Quiet grey', c: '#334155', bg: '#f4f5f7' },
+    { id: 'original', name: 'Original', note: 'Old v10.7 look', c: '#1e40af', bg: '#f3f6fb' }
+  ];
+  const Skin = {
+    list: SKINS,
+    mode: (function () { try { const v = localStorage.getItem('esypos_skin') || 'classic'; return SKINS.some(x => x.id === v) ? v : 'classic'; } catch (_) { return 'classic'; } })(),
+    apply() {
+      const el = document.documentElement, orig = this.mode === 'original';
+      if (this.mode === 'classic' || orig) el.removeAttribute('data-skin'); else el.setAttribute('data-skin', this.mode);
+      Design.mode = orig ? 'classic' : 'modern'; el.classList.toggle('classic', orig);
+      try { localStorage.setItem('esypos_design', Design.mode); } catch (_) {}
+      document.querySelectorAll('.skin-card').forEach(b => { const on = b.dataset.skin === this.mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      const cs = getComputedStyle(el).getPropertyValue('--bg').trim();
+      document.querySelectorAll('meta[name=theme-color]').forEach(m => { m.removeAttribute('media'); m.content = Theme.isDark() ? (cs || '#0d1628') : (cs || '#edf2fd'); });
+    },
+    set(id) { if (!SKINS.some(x => x.id === id)) id = 'classic'; this.mode = id; try { localStorage.setItem('esypos_skin', id); } catch (_) {} this.apply(); { try { Core.toast('Theme: ' + SKINS.find(x => x.id === id).name); } catch (_) {} } },
+    html() {
+      return '<div class="skin-grid" role="group" aria-label="Colour theme">' + SKINS.map(k =>
+        `<button type="button" class="skin-card ${k.id === this.mode ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${k.id === this.mode}" onclick="Skin.set('${k.id}')" style="--sk-c:${k.c};--sk-bg:${k.bg}"><span class="sk-prev"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i></span><span class="sk-tick"><i class="fas fa-check"></i></span><b>${k.name}</b><small>${k.note}</small></button>`).join('') + '</div>';
+    }
+  };
+  window.Skin = Skin;
+  if (Design.mode === 'classic' && !localStorage.getItem('esypos_skin')) Skin.mode = 'original';   // people who already chose the old look keep it
   document.addEventListener('DOMContentLoaded', () => Design.apply());
   Design.apply();
   if (mq && mq.addEventListener) mq.addEventListener('change', () => Theme.mode === 'auto' && Theme.apply());
-  document.addEventListener('DOMContentLoaded', () => Theme.apply());
-  Theme.apply();
+  document.addEventListener('DOMContentLoaded', () => { Theme.apply(); Skin.apply(); });
+  Theme.apply(); Skin.apply();
   window.exportData = function (silent, force) {
     if (silent && !force) return;
     if (!force) return;

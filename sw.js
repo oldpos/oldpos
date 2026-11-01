@@ -5,12 +5,12 @@
    - Security headers: every page served by this worker carries frame-ancestors 'none', nosniff, a strict referrer policy
      and a Permissions-Policy that only allows the camera (barcode scan) and Bluetooth (printer) for this app.
    App data lives in localStorage + the user's Google Drive; this cache only holds the app files. */
-const CACHE_VERSION = 'v12.2.0';
+const CACHE_VERSION = 'v12.3.0';
 const APP_CACHE = `oldpos-app-${CACHE_VERSION}`;
 
 const CRITICAL = [
   './', './index.html', './offline.html', './manifest.webmanifest',
-  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/icons.css',
+  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/icons.css',
   './fonts/inter-latin-var.woff2', './fonts/fa-solid-subset.woff2', './fonts/fa-brands-subset.woff2',
   './js/core/core.js', './js/core/barcode.js', './js/core/wedge.js', './js/core/linear.js', './js/core/ui.js', './js/core/config.js',
   './js/modules/app.js', './js/modules/people.js', './js/modules/misc.js', './js/modules/home.js', './js/modules/settings.js',

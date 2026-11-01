@@ -311,17 +311,19 @@
       const dstr = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       const shop = esc(DB.settings.shopName || 'My Shop');
       const payL = { cash: 'Cash', card: 'Card', bkash: 'bKash', due: 'Due', nagad: 'Nagad', mobile: 'Mobile' };
-      const tile = (k, v, go, cls) => `<button type="button" class="sd-tile" onclick="${go}"><span>${k}</span><b class="${cls || ''}">${v}</b></button>`;
+      const tile = (k, v, go, cls, ic) => `<button type="button" class="sd-tile" onclick="${go}"><em class="sd-ti"><i class="fas ${ic || 'fa-circle'}"></i></em><span class="sd-tt"><span>${k}</span><b class="${cls || ''}">${v}</b></span></button>`;
       const alertRow = (label, n, go, cls) => n ? `<button type="button" class="sd-row" onclick="${go}"><span class="sd-rl">${label}</span><span class="sd-pill ${cls}">${n}</span></button>` : '';
       const alerts = alertRow('Low stock products', lowN, "App.go('products')", 'bad') + alertRow('Expiring within 30 days', expN, "App.go('products')", 'warn') + alertRow('Customers with due', dueN, "People.cf='due';App.go('customers')", 'warn');
       const sales = recent.map(x => `<button type="button" class="sd-row" onclick="Receipt.showId('${x.id}')"><span class="sd-rl">#${C.invLabel(x)}<small>${C.fmtTime(x.date)} · ${payL[x.paymentMethod] || x.paymentMethod || 'Cash'}</small></span><span class="sd-rv ${x.due > 0 ? 'warn' : ''}">${money(x.total)}</span></button>`).join('');
+      const spark = (() => { const n = days.length; if (n < 2) return ''; const W = 120, H = 44, pts = days.map((d, i) => [Math.round(i / (n - 1) * W * 10) / 10, Math.round((H - 4 - d.v / mx * (H - 10)) * 10) / 10]); const line = pts.map(q => q.join(',')).join(' '); const last = pts[n - 1];
+        return `<svg class="sd-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,${H} ${line} ${W},${H}" class="sd-sa"/><polyline points="${line}" class="sd-sl"/><circle cx="${last[0]}" cy="${last[1]}" r="3" class="sd-sd"/></svg>`; })();
       $('view').innerHTML = `<div class="sd dash2">
-      <header class="sd-top"><div><h2>${greet}</h2><p>${shop} · ${dstr}</p></div><button type="button" class="sd-btn" onclick="App.go('pos')"><i class="fas fa-plus"></i> New sale</button></header>
-      <section class="sd-card sd-hero"><span class="sd-k">Today's sales</span><div class="sd-big">${money(td.netSales)}</div><div class="sd-sub">${bills} bill${bills === 1 ? '' : 's'}${delta}</div></section>
+      <header class="sd-top"><div class="sd-who"><span class="sd-av">${esc((DB.settings.shopName || 'M').trim().charAt(0).toUpperCase() || 'M')}</span><div><h2>${greet}</h2><p>${shop} · ${dstr}</p></div></div><button type="button" class="sd-btn" onclick="App.go('pos')"><i class="fas fa-plus"></i> New sale</button></header>
+      <section class="sd-card sd-hero"><div class="sd-hero-l"><span class="sd-k"><i class="fas fa-cash-register"></i> Today's sales</span><div class="sd-big">${money(td.netSales)}</div><div class="sd-sub">${bills} bill${bills === 1 ? '' : 's'}${delta}</div></div>${spark}</section>
       <div class="sd-tiles">
-        ${tile('This month', money(mo.netSales), "App.go('history')")}
-        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '')}
-        ${tile('Stock value', money(C.stockValue()), "App.go('products')")}
+        ${tile('This month', money(mo.netSales), "App.go('history')", '', 'fa-chart-column')}
+        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '', 'fa-hand-holding-dollar')}
+        ${tile('Stock value', money(C.stockValue()), "App.go('products')", '', 'fa-box-open')}
       </div>
       ${guide}
       <section class="sd-card"><div class="sd-h"><h3>Last 7 days</h3><span class="sd-mut">${money(r2(days.reduce((a, d) => a + d.v, 0)))}</span></div>
