@@ -2,6 +2,12 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.2.0 — Simple dashboard · plain live user counter
+- **Dashboard redesigned:** one calm layout (today's sales, 3 numbers, 7-day bars, recent sales, things that need attention). Flat cards, light weights, no gradients, same on phone and desktop. New `css/simple.css`.
+- **Total users is just a number:** the Users page and the tap-to-open link are gone (`users.js` removed). Only the total is shown.
+- **Counts every visitor, once per device** (no sign-in needed; bots ignored). Login / logout never counts again. Total refreshes live (every 60 s while the app is open).
+- **Counter is now Google Apps Script + Google Sheet only** (`tools/user-counter.gs`, `tools/SETUP-bn.md`). Firebase and the free public counters are removed. Devices already counted by older versions stay inside `userCountOffset`.
+
 ## v12.1.4 — Exact user counter
 - **Exact counting with Firebase** (`userCounterUrl` + `firebase-rules.json`): one Google account = one user (SHA-256 fingerprint, e-mail never stored). Registration is a single atomic update accepted by the rules only when the user does not exist, so the total rises exactly once per user — parallel tabs, several phones, data wipes, re-installs and failed/retried requests cannot double-count. Total and daily history are plain counters (no scanning of all users).
 - Previously counted devices are recorded but not added again (`userCountOffset` carries the old number).

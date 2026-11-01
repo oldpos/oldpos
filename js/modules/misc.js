@@ -288,9 +288,10 @@
       DB.returns.forEach(r => { const k = C.dkey(r.date); if (k in dn) dn[k] -= num(r.amount); });
       days.forEach(d => { d.v = r2(dn[d.k]); });
       const mx = Math.max.apply(null, days.map(d => d.v).concat([1]));
-      const low = DB.products.filter(p => p.track !== false && p.stock <= (p.minStock || 0)).slice(0, 8);
-      const soon = C.addDays(t, 30); const exp = DB.products.filter(p => p.expiry && p.expiry <= soon).sort((a, b) => a.expiry < b.expiry ? -1 : 1).slice(0, 5);
-      const debtors = DB.customers.map(c => ({ c, b: C.customerBalance(c.id) })).filter(x => x.b > 0).sort((a, b) => b.b - a.b).slice(0, 5);
+      const soon = C.addDays(t, 30);
+      const lowN = DB.products.filter(p => p.track !== false && p.stock <= (p.minStock || 0)).length;
+      const expN = DB.products.filter(p => p.expiry && p.expiry <= soon).length;
+      const dueN = DB.customers.filter(c => C.customerBalance(c.id) > 0).length;
       const recent = DB.sales.slice(0, 5);
       let guideOff = false; try { guideOff = localStorage.getItem('esypos_guide_off') === '1'; } catch (_) {}
       const steps = [
@@ -300,86 +301,34 @@
         ['Lock the app with a PIN (optional)', !!(window.Lock && Lock.has()), "App.go('settings');setTimeout(function(){Settings.open('security')},60)"]
       ];
       const doneN = steps.filter(x => x[1]).length;
-      const guide = (!guideOff && doneN < steps.length) ? `<div class="card pad mb3 guide"><div class="flex between items-c mb2"><div class="sec-title" style="margin:0">Get started <span class="badge b-p">${doneN}/${steps.length}</span></div><button type="button" class="link-btn" onclick="App.Views.dashboard.hideGuide()">Hide</button></div>
-        ${steps.map(x => `<button type="button" class="guide-step ${x[1] ? 'ok' : ''}" onclick="${x[2]}">${x[1] ? '<i class="fas fa-circle-check"></i>' : '<i class="gs-dot"></i>'}<span>${x[0]}</span><i class="fas fa-chevron-right go"></i></button>`).join('')}</div>` : '';
+      const guide = (!guideOff && doneN < steps.length) ? `<section class="sd-card guide"><div class="sd-h"><h3>Get started <span class="sd-mut">${doneN}/${steps.length}</span></h3><button type="button" class="sd-link" onclick="App.Views.dashboard.hideGuide()">Hide</button></div>
+        ${steps.map(x => `<button type="button" class="guide-step ${x[1] ? 'ok' : ''}" onclick="${x[2]}">${x[1] ? '<i class="fas fa-circle-check"></i>' : '<i class="gs-dot"></i>'}<span>${x[0]}</span><i class="fas fa-chevron-right go"></i></button>`).join('')}</section>` : '';
       const hr = new Date().getHours(), greet = hr >= 5 && hr < 12 ? 'Good morning' : hr >= 12 && hr < 17 ? 'Good afternoon' : hr >= 17 && hr < 21 ? 'Good evening' : 'Good night';
-      const gIcon = hr >= 5 && hr < 17 ? 'sun' : hr >= 17 && hr < 21 ? 'sunset' : 'moon';
       const yk = C.addDays(t, -1), yv = C.buildReport(yk, yk).netSales;
       const dl = yv > 0 ? Math.round((td.netSales - yv) / yv * 100) : null;
-      const delta = dl === null ? '' : `<span class="hm-d ${dl >= 0 ? 'up' : 'dn'}" title="vs yesterday">${dl >= 0 ? '▲' : '▼'} ${Math.abs(dl)}%</span>`;
-      const wk = r2(days.reduce((a, d) => a + d.v, 0));
-      const I = (n, z) => (window.EsyIcon ? EsyIcon(n, z || 22) : '');
-      const bills = td.count, sold = DB.products.reduce((a, p) => a + (p.track === false ? 0 : Math.max(0, num(p.stock))), 0);
+      const delta = dl === null ? '' : ` · <span class="sd-d ${dl >= 0 ? 'up' : 'dn'}">${dl >= 0 ? '▲' : '▼'} ${Math.abs(dl)}%</span> vs yesterday`;
+      const bills = td.count;
       const dstr = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-      const yearStr = new Date().getFullYear();
-      const dayName = new Date().toLocaleDateString('en-GB', { weekday: 'long' });
       const shop = esc(DB.settings.shopName || 'My Shop');
-      const lastSale = recent[0] ? C.fmtTime(recent[0].date) : '—';
-      const ago = iso => { const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' hr ago' : C.dkey(iso) === C.addDays(t, -1) ? 'yesterday' : Math.floor(m / 1440) + ' days ago'; };
-      const lastAgo = recent[0] ? ago(recent[0].date) : 'No sales yet';
-      const dayDiff = k => Math.round((new Date(k + 'T00:00') - new Date(t + 'T00:00')) / 86400000);
-      const GI = { sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>', sunset: '<path d="M12 9V3M5.6 10.6 4.2 9.2M2 17h2M20 17h2M19.8 9.2l-1.4 1.4"/><path d="M16 17a4 4 0 0 0-8 0"/><path d="M3 21h18"/>', moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>' };
-      const gi = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + GI[gIcon] + '</svg>';
-      const si = d => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
       const payL = { cash: 'Cash', card: 'Card', bkash: 'bKash', due: 'Due', nagad: 'Nagad', mobile: 'Mobile' };
-      const wcard = (cls, ic, title, count, link, body) => `<section class="wcard ${cls}"><header class="wc-h"><span class="wc-ic">${ic}</span><h3>${title}</h3>${count ? `<span class="wc-n">${count}</span>` : ''}${link ? `<button type="button" class="wc-all" onclick="${link[1]}">${link[0]} <i class="fas fa-chevron-right"></i></button>` : ''}</header><div class="wc-b">${body}</div></section>`;
-      const wempty = (ic, txt) => `<div class="wc-empty"><i class="fas ${ic}"></i><span>${txt}</span></div>`;
-      const wrow = (oc, av, name, sub, val, vcls) => `<div class="wrow"${oc ? ` onclick="${oc}" role="button" tabindex="0"` : ''}><span class="wr-av">${av}</span><span class="wr-m"><b>${name}</b><small>${sub}</small></span><span class="wr-v ${vcls || ''}">${val}</span></div>`;
-      const dues5 = DB.customers.map(c => ({ c, b: C.customerBalance(c.id) })).filter(x => x.b > 0).sort((a, b) => b.b - a.b);
-      const lowAll = DB.products.filter(p => p.track !== false && p.stock <= (p.minStock || 0));
-      const expAll = DB.products.filter(p => p.expiry && p.expiry <= soon);
-      const initial = n => esc((String(n || '?').trim()[0] || '?').toUpperCase());
-      const avgTicket = bills ? money(r2(td.netSales / bills)) : money(0);
-      $('view').innerHTML = `<div class="dash2">
-      <div class="d2-greet gx">
-        <div class="gx-lead">
-          <span class="gx-ic gx-${gIcon}">${gi}</span>
-          <div class="gx-t"><div class="gx-hi">${greet}</div><div class="gx-shop">${shop}<span> · ${dayName}</span></div></div>
-        </div>
-        <div class="gx-stats">
-          <div class="gx-s"><span class="gx-si">${si('<rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/>')}</span><span class="gx-x"><small>Today</small><b>${dstr}<span class="gx-y"> ${yearStr}</span></b></span></div>
-          <div class="gx-s"><span class="gx-si">${si('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}</span><span class="gx-x"><small>Last sale</small><b>${lastSale}</b><em>${lastAgo}</em></span></div>
-          <div class="gx-s"><span class="gx-si">${si('<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>')}</span><span class="gx-x"><small>Bills today</small><b>${bills}</b></span></div>
-        </div>
-      </div>
-      <section class="hero2" aria-label="Today's turnover">
-        <div class="h2-row">
-          <div class="h2-main"><div class="h2-k">TODAY'S TURNOVER</div><div class="h2-v">${money(td.netSales)}</div>
-            <div class="h2-sub">${bills} bill${bills === 1 ? '' : 's'} today ${delta}</div></div>
-          <button type="button" class="h2-sell" onclick="App.go('pos')">${I('cart', 20)}<span>New Sale</span></button>
-        </div>
-        <div class="h2-line"></div>
-        <div class="h2-metrics">
-          <button type="button" class="hm hm2" onclick="App.go('history')" aria-label="Today's bills"><span class="k"><span>Today's Bills</span></span><b class="v">${bills}</b></button>
-          <button type="button" class="hm hm2" onclick="App.go('expenses')" aria-label="Today's expenses"><span class="k"><span>Today's Expenses</span></span><b class="v">${money(td.expenses)}</b></button>
-          <button type="button" class="hm hm2 r" onclick="App.go('products')" aria-label="Inventory units"><span class="k"><span>Inventory Units</span></span><b class="v">${fmt(Math.round(sold))} items</b></button>
-        </div>
-      </section>
-      <div class="sc-grid">
-        <button type="button" class="stat sc" onclick="App.go('history')"><div class="sc-h"><span class="sc-t">Sales Turnover</span><span class="sc-i t-p">${I('till', 22)}</span></div><div class="v sc-v">${money(mo.netSales)}</div><div class="sc-s">Month · Today ${money(td.netSales)}</div></button>
-        <button type="button" class="stat sc" onclick="App.go('history')"><div class="sc-h"><span class="sc-t">Avg. Ticket</span><span class="sc-i t-g">${I('trend', 22)}</span></div><div class="v sc-v">${avgTicket}</div><div class="sc-s">Today · per bill</div></button>
-        <button type="button" class="stat sc" onclick="People.cf='due';App.go('customers')"><div class="sc-h"><span class="sc-t">Customer Dues</span><span class="sc-i t-w">${I('wallet', 22)}</span></div><div class="v sc-v ${C.totalCustomerDue() > 0 ? 'bad' : ''}">${money(C.totalCustomerDue())}</div><div class="sc-s">Receivable balances</div></button>
-        <button type="button" class="stat sc" onclick="App.go('products')"><div class="sc-h"><span class="sc-t">Stock Value</span><span class="sc-i t-i">${I('store', 22)}</span></div><div class="v sc-v">${money(C.stockValue())}</div><div class="sc-s">At purchase cost</div></button>
-      </div>
-      <div class="d2-title">Quick Actions</div>
-      <div class="qa2" role="group" aria-label="Quick actions">
-        <button type="button" class="qa2-b" onclick="App.go('pos')"><span class="qa2-i t-p">${I('till', 24)}</span><span>POS Sale</span></button>
-        <button type="button" class="qa2-b" onclick="Home.addProduct()"><span class="qa2-i t-g">${I('plus', 24)}</span><span>+ Product</span></button>
-        <button type="button" class="qa2-b" onclick="App.go('purchases');setTimeout(function(){Buy.newPurchase()},60)"><span class="qa2-i t-i">${I('truck', 24)}</span><span>Purchase</span></button>
-        <button type="button" class="qa2-b" onclick="App.go('expenses');setTimeout(function(){Exp.add()},60)"><span class="qa2-i t-w">${I('receipt', 24)}</span><span>+ Expense</span></button>
+      const tile = (k, v, go, cls) => `<button type="button" class="sd-tile" onclick="${go}"><span>${k}</span><b class="${cls || ''}">${v}</b></button>`;
+      const alertRow = (label, n, go, cls) => n ? `<button type="button" class="sd-row" onclick="${go}"><span class="sd-rl">${label}</span><span class="sd-pill ${cls}">${n}</span></button>` : '';
+      const alerts = alertRow('Low stock products', lowN, "App.go('products')", 'bad') + alertRow('Expiring within 30 days', expN, "App.go('products')", 'warn') + alertRow('Customers with due', dueN, "People.cf='due';App.go('customers')", 'warn');
+      const sales = recent.map(x => `<button type="button" class="sd-row" onclick="Receipt.showId('${x.id}')"><span class="sd-rl">#${C.invLabel(x)}<small>${C.fmtTime(x.date)} · ${payL[x.paymentMethod] || x.paymentMethod || 'Cash'}</small></span><span class="sd-rv ${x.due > 0 ? 'warn' : ''}">${money(x.total)}</span></button>`).join('');
+      $('view').innerHTML = `<div class="sd dash2">
+      <header class="sd-top"><div><h2>${greet}</h2><p>${shop} · ${dstr}</p></div><button type="button" class="sd-btn" onclick="App.go('pos')"><i class="fas fa-plus"></i> New sale</button></header>
+      <section class="sd-card sd-hero"><span class="sd-k">Today's sales</span><div class="sd-big">${money(td.netSales)}</div><div class="sd-sub">${bills} bill${bills === 1 ? '' : 's'}${delta}</div></section>
+      <div class="sd-tiles">
+        ${tile('This month', money(mo.netSales), "App.go('history')")}
+        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '')}
+        ${tile('Stock value', money(C.stockValue()), "App.go('products')")}
       </div>
       ${guide}
-      <div class="card pad trend2"><div class="flex between items-c mb2"><div><div class="tr-t">Sales Trend (Last 7 Days)</div><div class="tr-s">Daily POS revenue performance</div></div><span class="tr-i">${I('bars', 22)}<b>${money(wk)}</b></span></div><div class="bars">${days.map((d, i) => `<div class="bar${i === days.length - 1 ? ' today' : ''}"><b>${d.v ? fmt(Math.round(d.v)) : ''}</b><i style="height:${Math.max(3, d.v / mx * 90)}%"></i><small>${new Date(d.k + 'T00:00').toLocaleDateString('en-GB', { weekday: 'short' })}</small></div>`).join('')}</div></div>
-      <div class="d2-title d2-work">This month · work summary</div>
-      <div class="stats stats-work"><div class="stat"><div class="k">Sales</div><div class="v">${money(mo.netSales)}</div></div>
-        <div class="stat"><div class="k">Bills</div><div class="v">${mo.count}</div></div>
-        <div class="stat"><div class="k">Expenses</div><div class="v">${money(mo.expenses)}</div></div>
-        <div class="stat d2-to-reports" onclick="App.go('reports')"><div class="k">Profit &amp; P/L</div><div class="v muted" style="font-size:14px">View in Reports →</div></div></div>
-      <div class="wgrid">
-        ${wcard('w-sales', si('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'), 'Recent sales', '', ['View all', "App.go('history')"], recent.length ? recent.map(x => wrow(`Receipt.showId('${x.id}')`, '<i class="fas fa-receipt"></i>', '#' + C.invLabel(x), C.fmtTime(x.date) + ' · ' + (x.items || []).length + ' item' + ((x.items || []).length === 1 ? '' : 's') + ' · ' + (payL[x.paymentMethod] || x.paymentMethod || 'Cash'), money(x.total), x.due > 0 ? 'warn' : '')).join('') : wempty('fa-receipt', 'No sales yet — make your first sale'))}
-        ${wcard('w-dues', si('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'), 'Highest dues', dues5.length, ['View all', "People.cf='due';App.go('customers')"], debtors.length ? debtors.map(x => wrow(`People.detail('${x.c.id}')`, initial(x.c.name), esc(x.c.name), esc(x.c.phone || 'No phone'), money(x.b), 'bad')).join('') : wempty('fa-circle-check', 'No customer dues'))}
-        ${wcard('w-low', si('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>'), 'Low stock', lowAll.length, ['View all', "App.go('products')"], low.length ? low.slice(0, 5).map(p => wrow("App.go('products')", initial(p.name), esc(p.name), 'Alert at ' + (p.minStock || 0) + ' ' + esc(p.unit || ''), (p.stock <= 0 ? 'Out' : p.stock + ' ' + esc(p.unit || '')), 'bad')).join('') : wempty('fa-circle-check', 'All stock levels are fine'))}
-        ${wcard('w-exp', si('<path d="M5 22h14M5 2h14"/><path d="M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22"/><path d="M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4A2 2 0 0 0 17 6.2V2"/>'), 'Expiring soon', expAll.length, ['View all', "App.go('products')"], exp.length ? exp.slice(0, 5).map(p => { const dd = dayDiff(p.expiry); return wrow("App.go('products')", initial(p.name), esc(p.name), 'Expiry ' + p.expiry + ' · ' + p.stock + ' ' + esc(p.unit || '') + ' left', dd < 0 ? 'Expired ' + (-dd) + 'd ago' : dd === 0 ? 'Today' : dd + (dd === 1 ? ' day' : ' days'), dd < 0 ? 'bad' : 'warn'); }).join('') : wempty('fa-circle-check', 'Nothing is expiring soon'))}
+      <section class="sd-card"><div class="sd-h"><h3>Last 7 days</h3><span class="sd-mut">${money(r2(days.reduce((a, d) => a + d.v, 0)))}</span></div>
+        <div class="sd-bars">${days.map((d, i) => `<div class="sd-bar${i === days.length - 1 ? ' on' : ''}" title="${fmt(Math.round(d.v))}"><i style="height:${Math.max(3, d.v / mx * 100)}%"></i><small>${new Date(d.k + 'T00:00').toLocaleDateString('en-GB', { weekday: 'short' })}</small></div>`).join('')}</div></section>
+      <div class="sd-cols">
+        <section class="sd-card"><div class="sd-h"><h3>Recent sales</h3><button type="button" class="sd-link" onclick="App.go('history')">View all</button></div>${sales || '<p class="sd-empty">No sales yet</p>'}</section>
+        <section class="sd-card"><div class="sd-h"><h3>Needs attention</h3></div>${alerts || '<p class="sd-empty">All good ✓</p>'}</section>
       </div>
       </div>`;
     }

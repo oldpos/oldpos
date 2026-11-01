@@ -59,18 +59,10 @@ Old POS is an open-source project released under the **[MIT License](LICENSE)**.
 2. Sign in with Google once and add products (the app then opens instantly, and reconnects to Drive in the background)
 3. On phone: **Add to Home screen**
 
-## Live user counter (optional)
-Old POS shows **Total users** in the menu. Tap it to open the **Users** page: total users, new users per day and visits per day for the last 30 days. Only signed-in, real devices are counted; one device is one user. No name, e-mail, shop data, country or city is collected or looked up.
+## Live user counter (Google Sheet)
+Old POS shows **Total users** in the menu — a plain number, nothing to tap. Every visiting device is counted **once** (the id is kept on the device, so login / logout / clearing data never counts it again); bots are ignored. The number refreshes live (one light request a minute while the app is open). No name, e-mail, shop data, country or city is stored.
 
-Without any setup the counters use free public services (approximate: they can be reset or go offline). For an **exact** count use your own free Firebase database — one Google account = one user, counted exactly once even on several phones, after clearing data or re-installing:
-
-1. Firebase console → *Build → Realtime Database → Create database*.
-2. *Rules* tab → paste the whole content of `firebase-rules.json` → *Publish*. (Rules accept only "create this user once" and "+1" updates, so nothing can be deleted or lowered from the app.)
-3. Copy the database URL (no trailing slash) into `userCounterUrl` in `js/core/config.js`.
-4. Put the number you show today into `userCountOffset` so the total continues from it. Users counted before are recorded but not added again.
-5. Open the app signed in → **Users** page should say *Exact counter*.
-
-Anyone who reads the app code can still call a public database directly, so the counter is exact for normal use, not tamper-proof. Firebase App Check can be added later for that.
+The count lives in **your own Google Sheet** through a small Google Apps Script. Setup (Bangla, step by step): [`tools/SETUP-bn.md`](tools/SETUP-bn.md) · script: [`tools/user-counter.gs`](tools/user-counter.gs). Paste the web-app URL into `userCounterApi` in `js/core/config.js`.
 
 ## Privacy
 

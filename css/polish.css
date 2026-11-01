@@ -100,41 +100,9 @@ html.dark .gx-ic.gx-sunset{color:#fdba74;background:linear-gradient(135deg,#4a24
 .dash2 .stats-work{gap:12px}
 .dash2 .stats-work .stat{border-radius:16px}
 
-/* ---------- Users page (v12.1.1): total + 30-day bar chart ---------- */
-.usr{padding-bottom:30px;max-width:980px}
-.usr-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px}
-.usr-head p{margin:0;font-size:13px;color:var(--muted)}
-.usr-rf{display:inline-flex;align-items:center;gap:7px;flex:none}
-.usr-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
-@media(min-width:900px){.usr-cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.usr-card{padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;min-width:0}
-.uc-k{font-size:12px;font-weight:600;color:var(--muted)}
-.uc-v{font-size:26px;font-weight:750;letter-spacing:-.02em;color:var(--text);line-height:1.2;font-variant-numeric:tabular-nums}
-.uc-s{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.usr-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:48px;color:var(--muted);font-weight:600}
-.usr-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.usr-panel>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
-.usr-panel>header>span{font-size:12px;font-weight:600;color:var(--muted)}
-.usr-tabs{display:inline-flex;background:var(--hover);border-radius:10px;padding:3px;gap:2px}
-.usr-tabs button{border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer}
-.usr-tabs button.on{background:var(--card);color:var(--text);box-shadow:0 1px 2px rgba(15,23,42,.12)}
-.usr-chart{padding:14px 14px 12px}
-.usr-read{min-height:22px;font-size:13px;color:var(--muted);margin-bottom:10px}.usr-read b{color:var(--text);font-size:16px}
-.usr-bars{display:flex;align-items:flex-end;gap:3px;height:170px}
-.ub{all:unset;box-sizing:border-box;flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;cursor:pointer;border-radius:4px}
-.ub i{display:block;width:100%;border-radius:4px 4px 2px 2px;background:color-mix(in srgb,var(--primary) 38%,var(--card));transition:background .12s}
-.ub.today i{background:color-mix(in srgb,var(--primary) 70%,var(--card))}
-.ub.zero i{background:var(--border)}
-.ub:hover i,.ub.sel i{background:var(--primary)}
-.ub:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
-.usr-axis{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted)}
-.usr-empty{text-align:center;padding:36px 20px;color:var(--muted)}
-.usr-empty h3{margin:0 0 6px;color:var(--text);font-size:15px}.usr-empty p{margin:0;font-size:13px}
-@media(max-width:640px){.usr-bars{height:140px;gap:2px}}
-
 /* ---------- Simple, flat look for the whole app (v12.1.1) ---------- */
 :root,html.dark{--card-sh:none;--card-r:14px}
-html body .card,html body .stat,html body .wcard,html body .sc,html body .usr-card,html body .trend2,html body .dash2 .card,html body .dash2 .stats .stat{box-shadow:none;border-radius:14px}
+html body .card,html body .stat,html body .wcard,html body .sc,html body .trend2,html body .dash2 .card,html body .dash2 .stats .stat{box-shadow:none;border-radius:14px}
 html body .modal{border-radius:16px}
 html body .btn{box-shadow:none}
 html body .btn-primary{background:var(--primary);background-image:none}

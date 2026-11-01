@@ -21,7 +21,7 @@
   function title() {
     const p = $('db-page'); if (!p) return;
     const a = document.querySelector('#nav-desk .nav-link.active');
-    const t = App.view === 'pos' ? 'Sales Counter' : App.view === 'users' ? 'Users' : (a ? a.textContent.trim() : ''); if (t) p.textContent = t;
+    const t = App.view === 'pos' ? 'Sales Counter' : (a ? a.textContent.trim() : ''); if (t) p.textContent = t;
     shopName();
   }
 

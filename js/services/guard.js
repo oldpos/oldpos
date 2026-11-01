@@ -1,7 +1,7 @@
-/* Old POS Guard (v10.14): section lock for staff + anonymous user counter.
+/* Old POS Guard: section lock for staff + anonymous user counter (total only, one device = one user, Google Sheet).
    - Section lock: owner picks which sections need the PIN (Settings -> Section lock). Salesmen stay on the Sales Counter.
-   - User counter: each install registers one random anonymous ID (no name, phone, shop data) in YOUR Firebase Realtime
-     Database; the app shows how many installs exist. Set userCounterUrl in js/core/config.js (see README). */
+   - User counter: each device registers one random anonymous ID (no name, phone, shop data) in YOUR Google Sheet through
+     an Apps Script; the app shows the total. Set userCounterApi in js/core/config.js (see tools/SETUP-bn.md). */
 (function () {
   'use strict';
   const C = Core, DB = C.DB, esc = C.esc, toast = C.toast;
@@ -203,76 +203,51 @@
     }
   };
 
-  /* ---- user counter: ONE DEVICE = ONE USER (v12.0.0) ----
-     The id comes from the device itself (Safety.deviceId), so Log out / re-login / clearing data / re-installing the app
-     on the same device is never counted again. With the default free counters the device is registered once through its
-     own tiny counter: the global total only goes up when that device counter is seen for the very first time. */
+  /* ---- user counter (Google Apps Script + Google Sheet) ----
+     Every visiting device is counted ONCE: the id comes from the device itself (Safety.deviceId, kept in 3 places), so login / logout /
+     clearing data never counts it again. No sign-in needed; bots are ignored. Only the total is shown, and it refreshes live
+     (one light request a minute while the app is open). The Sheet keeps one row per device id — see tools/user-counter.gs and tools/SETUP-bn.md. */
   const LS = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} } };
   const cfg = () => window.PROPOS_CONFIG || {};
-  const base = () => ((cfg().userCounterUrl) || '').trim().replace(/\/+$/, '');
+  const api = () => ((cfg().userCounterApi) || '').trim();
+  const BOT = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|phantom|puppeteer|playwright/i;
+  const human = () => { try { return !navigator.webdriver && !BOT.test(navigator.userAgent || ''); } catch (_) { return true; } };
   function pill() {
     const off = parseInt(cfg().userCountOffset, 10) || 0;
     const n = (parseInt(LS.get('esypos_uc') || '0', 10) || 0) + off;
     document.querySelectorAll('.js-ucount').forEach(e => { e.textContent = n > 0 ? n.toLocaleString('en-US') : '—'; });
   }
-  const ABACUS = 'https://abacus.jasoncameron.dev', NS_ = 'oldpos.github.io', TOTAL = 'total-users';
-  const CAPI = 'https://api.counterapi.dev/v1/esypos-github-io';
-  const pick = j => { const v = j && (j.count !== undefined ? j.count : j.value !== undefined ? j.value : j.data && (j.data.up_count !== undefined ? j.data.up_count : j.data.count)); const n = parseInt(v, 10); return isNaN(n) ? 0 : n; };
-  async function hitJSON(url) {                       // one request = its own timeout, so a slow first request can no longer cancel the next one
-    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
-    try { const r = await fetch(url, { signal: ctl.signal, cache: 'no-store' }); if (!r.ok) return 0; return pick(await r.json()); }
-    finally { clearTimeout(to); }
+  async function viaScript(a, dev, canReg, signal) {
+    const legacy = LS.get('esypos_uc_reg') === '1';                       // counted by an older version → already inside userCountOffset
+    if (legacy && LS.get('esypos_uc_dev') !== dev) LS.set('esypos_uc_dev', dev);
+    const done = LS.get('esypos_uc_dev') === dev || !canReg;
+    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + (done ? 'a=count' : 'a=hit&id=' + encodeURIComponent(dev)), { signal, cache: 'no-store' });
+    const j = r.ok ? await r.json() : null;
+    if (!j || !j.ok) return;
+    if (!done) LS.set('esypos_uc_dev', dev);                              // remembered only after the server confirmed
+    const old = parseInt(LS.get('esypos_uc') || '0', 10) || 0;
+    if (typeof j.total === 'number' && j.total >= old) LS.set('esypos_uc', String(j.total));   // never goes down
   }
-  /* v12.1.2 counter rules (fixes under- and over-counting):
-     1. ONE source of truth (Abacus) decides whether a device is new. The old fallback counted the same device again on a second service → inflated total.
-     2. A device whose own counter was created but whose total-increment failed is remembered (esypos_uc_pend) and retried; before, it was lost forever.
-     3. The number shown never goes down because a fallback service returned a smaller value. */
-  async function viaCounters(dev, canReg) {
-    const dk = 'dev-' + dev, done = LS.get('esypos_uc_dev') === dev || !canReg, legacy = LS.get('esypos_uc_reg') === '1';
-    let total = 0;
-    if (!done) {
-      const pend = LS.get('esypos_uc_pend') === dev;
-      let n = pend ? 1 : 0;
-      if (!pend) { try { n = await hitJSON(ABACUS + '/hit/' + NS_ + '/' + dk); } catch (_) {} }
-      if (n) {
-        if (n === 1 && !legacy) {
-          LS.set('esypos_uc_pend', dev);                       // survives a failed request / closed tab → retried next time
-          try { total = await hitJSON(ABACUS + '/hit/' + NS_ + '/' + TOTAL); } catch (_) {}
-          if (total) { LS.set('esypos_uc_dev', dev); try { localStorage.removeItem('esypos_uc_pend'); } catch (_) {} try { window.Users && Users.noteJoin(); } catch (_) {} }
-        } else { LS.set('esypos_uc_dev', dev); }              // already counted before (or counted by an older version)
-      }
-    }
-    if (!total) {
-      try { total = await hitJSON(ABACUS + '/get/' + NS_ + '/' + TOTAL); } catch (_) {}
-      if (!total) { try { total = await hitJSON(CAPI + '/' + TOTAL + '/'); } catch (_) {} }
-    }
-    return total;
-  }
+  let busy = false, lastAt = 0;
   async function count() {
-    if (!navigator.onLine) return pill();
-    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 9000), b = base();
+    pill();
+    if (!api() || !navigator.onLine) return;
+    if (busy || Date.now() - lastAt < 15000) return;      // never two requests at once, never more than one every 15 s
+    busy = true; lastAt = Date.now();
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
     try {
       const dev = window.Safety ? await Safety.deviceId() : null;
-      if (!dev) throw new Error('no device id');
-      const canReg = !!(window.Users && Users.real());          // v12.1: visitors, bots and signed-out devices are never counted
-      if (b) {                                              // optional: your own Firebase database (exact, one record per real device)
-        if (window.Users) await Users.sync();             // registers this account once (atomic), then reads the exact total
-        const r2 = await fetch(b + '/stats/total.json', { signal: ctl.signal, cache: 'no-store' });
-        if (r2.ok) { const j = await r2.json(); if (typeof j === 'number') LS.set('esypos_uc', String(j)); }
-      } else {
-        const n = await viaCounters(dev, canReg), old = parseInt(LS.get('esypos_uc') || '0', 10) || 0;
-        if (n && n >= old) LS.set('esypos_uc', String(n));          // counters only ever grow: ignore a smaller answer from a fallback service
-      }
+      if (dev) await viaScript(api(), dev, human(), ctl.signal);
     } catch (_) { /* offline or blocked: keep the last known number */ }
-    clearTimeout(to); pill(); if (window.Users) Users.paint();
+    clearTimeout(to); busy = false; pill();
   }
 
   Guard.refreshCount = () => { count(); };
   function start() {
-    hook(); pill(); setTimeout(count, 1500);
+    hook(); pill(); setTimeout(count, 1200);
     window.addEventListener('online', count);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !parseInt(LS.get('esypos_uc') || '0', 10)) count(); });
-    setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine) count(); }, 30 * 60000);   // every 30 min (was every minute): saves battery and data
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') count(); });
+    setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine) count(); }, 60000);   // live: one light refresh a minute, only while the app is open
   }
   hookGo();                                          // immediately — before the app opens its first screen (see ?go= shortcuts)
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(start, 0)); else setTimeout(start, 0);

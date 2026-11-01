@@ -389,7 +389,7 @@
           <div class="gate-msg" id="w-msg" role="alert"></div>
           ${restore ? '<button class="gate-link" id="w-other" type="button">Use a different account</button>' : ''}
           <div class="lp-trust">
-            <button type="button" class="lp-users" onclick="window.Guard&&Guard.refreshCount()" title="Total Old POS users — tap to refresh"><i class="fas fa-users"></i><span>Total users</span><b class="js-ucount">—</b></button>
+            <span class="lp-users"><i class="fas fa-users"></i><span>Total users</span><b class="js-ucount">—</b></span>
             <span><i class="fas fa-shield-halved"></i> Private &amp; secure</span>
             <span><i class="fas fa-cloud-arrow-up"></i> Google Drive backup</span>
           </div>
