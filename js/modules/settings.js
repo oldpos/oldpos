@@ -170,7 +170,8 @@
     init(start) { if (this.has()) this.show(start); else start(); },
     lockNow() { if (!this.has()) { toast('Set PIN in Settings first'); return; } this.show(() => {}); },
     onHide() { this.hiddenAt = Date.now(); },
-    onResume() { if (this.has() && !this.el && this.hiddenAt && Date.now() - this.hiddenAt > Math.max(3, parseInt(DB.settings.autoLockMin, 10) || 3) * 60000) this.show(() => {}); },
+    autoMs() { const v = parseInt(DB.settings.autoLockMin, 10); return v === 0 ? 1200 : Math.max(3, v || 3) * 60000; },   // 0 = "as soon as I leave the app" (a 1 s blink such as a permission pop-up does not count)
+    onResume() { if (this.has() && !this.el && this.hiddenAt && Date.now() - this.hiddenAt > this.autoMs()) this.show(() => {}); },
     penalty() {                                   // 30s, 1m, 5m, 15m, 30m for repeated lock-outs
       let lv = 0; try { lv = parseInt(localStorage.getItem('esypos_lk_l') || '0', 10) || 0; localStorage.setItem('esypos_lk_l', String(lv + 1)); } catch (_) {}
       const secs = [30, 60, 300, 900, 1800][Math.min(4, lv)]; this.until = Date.now() + secs * 1000; this.fails = 0; return secs;
@@ -216,7 +217,7 @@
         }
       };
       const onKey = e => {                                          // hardware keyboard (desktop)
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.ctrlKey || e.metaKey || e.altKey || Modal.stack.length) return;      // a dialog (e.g. the recovery question) owns the keyboard
         if (/^\d$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); press(e.key); }
         else if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); press('⌫'); }
       };
@@ -224,6 +225,8 @@
       el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => press(b.dataset.k));
       showWait();
       el.querySelector('#lk-forgot').onclick = () => {
+        const viaGoogle = (window.Cloud && Cloud.isOn()) ? () => Cloud.resetPin() : null;
+        if (window.Recovery && Recovery.has('pin')) { Recovery.forgot('pin', () => { close(); done && done(); }, viaGoogle); return; }   // v12.7: secret question first
         if (window.Cloud && Cloud.isOn()) Cloud.resetPin();
         else askConfirm('Without a Google backup, the only way to remove a forgotten PIN is to wipe all data on this device. Continue?', () => { wipeAllData(); }, { danger: true, yes: 'Wipe & Reset Data', title: 'Reset PIN' });
       };
@@ -233,16 +236,20 @@
       const m = Modal.open({ title: has ? 'Change PIN' : 'Set PIN', body: `${has ? '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' : ''}
         <div class="field"><label class="label">New PIN (4 digits)</label><input id="pn-new" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" ${has ? '' : 'autofocus'}></div>
         <div class="field"><label class="label">Re-enter</label><input id="pn-new2" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>
-        <p class="xs muted">Forgot PIN? Reset needs cloud backup.</p>`, foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="pn-ok">Save</button>` });
+        ${window.Recovery ? Recovery.fieldsHTML('pin') : '<p class="xs muted">Forgot PIN? Reset needs cloud backup.</p>'}`, foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="pn-ok">Save</button>` });
       m.querySelector('#pn-ok').onclick = async () => {
         if (has) { const r = await Lock.check($('pn-old').value); if (r !== 'ok') { toast(r === 'wait' ? '⚠️ Too many wrong attempts — try again later' : '⚠️ Current PIN is wrong'); $('pn-old').value = ''; return; } }
         const a = $('pn-new').value, b = $('pn-new2').value; if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (Lock.isWeak(a)) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
-        const salt = C.genId(); DB.settings.pinSalt = salt; DB.settings.pinHash = await hashPin(a, salt); C.save('settings'); Modal.close(m); toast('PIN set ✓'); App.refresh();
+        const rec = window.Recovery ? Recovery.read('pin', a) : null; if (window.Recovery && !rec) return;      // the recovery question is part of setting a PIN
+        const salt = C.genId(); DB.settings.pinSalt = salt; DB.settings.pinHash = await hashPin(a, salt);
+        if (rec) await Recovery.commit('pin', rec);
+        ['esypos_lk_f', 'esypos_lk_u', 'esypos_lk_l'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+        C.save('settings'); Modal.close(m); toast('PIN set ✓'); App.refresh();
       };
     },
     remove() {
       const m = Modal.open({ title: 'Disable PIN', body: '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" autofocus></div>', foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-bad" id="pn-ok">Disable PIN</button>` });
-      m.querySelector('#pn-ok').onclick = async () => { const r = await Lock.check($('pn-old').value); if (r !== 'ok') { toast(r === 'wait' ? '⚠️ Too many wrong attempts — try again later' : '⚠️ Wrong PIN'); $('pn-old').value = ''; return; } DB.settings.pinHash = ''; DB.settings.pinSalt = ''; C.save('settings'); Modal.close(m); toast('PIN disabled'); App.refresh(); };
+      m.querySelector('#pn-ok').onclick = async () => { const r = await Lock.check($('pn-old').value); if (r !== 'ok') { toast(r === 'wait' ? '⚠️ Too many wrong attempts — try again later' : '⚠️ Wrong PIN'); $('pn-old').value = ''; return; } DB.settings.pinHash = ''; DB.settings.pinSalt = ''; if (window.Recovery) Recovery.clear('pin'); C.save('settings'); Modal.close(m); toast('PIN disabled'); App.refresh(); };
     }
   };
   const SERVICES = ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb'];
@@ -419,7 +426,7 @@
       ${sec('security', `<div class="card pad mb3" id="screen-lock-card"><div class="sec-title"><i class="fas fa-mobile-screen-button ptext"></i> 1. Home screen lock</div>
         <p class="muted sm mb3">${Lock.has() ? 'ON — this PIN is asked every time the app opens and after idle.' : 'OFF — turn on to ask a PIN every time the app opens.'}</p>
         <label class="switch"><span class="sm fw6"><i class="fas fa-lock ptext"></i> Home screen lock</span><input type="checkbox" ${Lock.has() ? 'checked' : ''} onchange="Lock.toggleUI(this)"></label>
-        ${Lock.has() ? '<div class="flex gap2"><button class="btn btn-ghost grow" onclick="Lock.setup()">Change PIN</button><button class="btn btn-ghost grow" onclick="Lock.lockNow()">Lock now</button></div>' : ''}
+        ${Lock.has() ? '<div class="flex gap2"><button class="btn btn-ghost grow" onclick="Lock.setup()">Change PIN</button><button class="btn btn-primary grow" onclick="Guard.lockNow()"><i class="fas fa-lock"></i> Lock now</button></div>' + (window.Recovery ? Recovery.rowHTML('pin') : '') : ''}
         <label class="switch mt3"><span class="sm fw6"><i class="fas fa-shuffle ptext"></i> Scramble keypad digits</span><input type="checkbox" ${DB.settings.keypadShuffle ? 'checked' : ''} onchange="Keypad.setScramble(this.checked)"></label>
         <p class="xs muted mt2">PINs are always typed on the secure on-screen keypad, never on the phone keyboard. Scrambling moves the digits every time so nobody can copy the pattern of your taps.</p></div>`)}
       ${sec('printers', `${window.LP ? LP.cardHTML() : ''}
@@ -437,7 +444,7 @@
         <div class="sys-row"><span class="sys-dot" id="sy-d1"></span><div class="sys-k">Works offline<small id="sy-s1">Checking…</small></div></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d2"></span><div class="sys-k">Installed as an app<small id="sy-s2">Checking…</small></div><button type="button" class="btn btn-primary hidden" id="sy-inst" onclick="PWA.install()">Install</button></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d3"></span><div class="sys-k">Data protected from cleanup<small id="sy-s3">Checking…</small></div></div>
-        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.1.0</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
+        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.0</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
         <div class="sys-row"><div class="sys-k">Storage used<small id="sy-s4">—</small></div></div>
         <div class="sys-row"><div class="sys-k">Repair offline files<small>Re-downloads the app files if something looks broken. Your shop data is not touched.</small></div><button type="button" class="btn btn-ghost" onclick="PWA.reset()">Repair</button></div></div>`)}
       ${sec('about', `<div class="card pad mb3">

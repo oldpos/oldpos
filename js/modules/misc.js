@@ -312,7 +312,7 @@
       const dstr = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       const shop = esc(DB.settings.shopName || 'My Shop');
       const payL = { cash: 'Cash', card: 'Card', bkash: 'bKash', due: 'Due', nagad: 'Nagad', mobile: 'Mobile' };
-      const tile = (k, v, go, cls, ic, sub, profit) => `<button type="button" class="sd-tile"${profit ? ' data-profit="1"' : ''} onclick="${go}"><em class="sd-ti"><i class="fas ${ic || 'fa-circle'}"></i></em><span class="sd-tt"><span>${k}</span><b class="v ${cls || ''}">${v}</b>${sub ? `<small>${sub}</small>` : ''}</span><i class="fas fa-chevron-right sd-go" aria-hidden="true"></i></button>`;
+      const tile = (k, v, go, cls, tip, profit) => `<button type="button" class="sd-tile" data-tile="1"${profit ? ' data-profit="1"' : ''} title="${esc(k + ' \u00b7 ' + tip)}" onclick="${go}"><span class="sd-tk">${k}</span><b class="v ${cls || ''}">${v}</b></button>`;
       const alertRow = (label, n, go, cls) => n ? `<button type="button" class="sd-row" onclick="${go}"><span class="sd-rl">${label}</span><span class="sd-pill ${cls}">${n}</span></button>` : '';
       const alerts = alertRow('Low stock products', lowN, "App.go('products')", 'bad') + alertRow('Expiring within 30 days', expN, "App.go('products')", 'warn') + alertRow('Customers with due', dueN, "People.cf='due';App.go('customers')", 'warn');
       const sales = recent.map(x => `<button type="button" class="sd-row" onclick="Receipt.showId('${x.id}')"><span class="sd-rl">#${C.invLabel(x)}<small>${C.fmtTime(x.date)} · ${payL[x.paymentMethod] || x.paymentMethod || 'Cash'}</small></span><span class="sd-rv ${x.due > 0 ? 'warn' : ''}">${money(x.total)}</span></button>`).join('');
@@ -324,9 +324,9 @@
       <section class="sd-card sd-hero"><div class="sd-hero-l"><span class="sd-k"><i class="fas fa-cash-register"></i> Today's sales</span><div class="sd-big">${money(td.netSales)}</div><div class="sd-sub">${bills} bill${bills === 1 ? '' : 's'}${delta}</div></div>${spark}</section>
       <div class="sd-acts"><button type="button" class="sd-act pri" onclick="App.go('pos')"><i class="fas fa-cash-register"></i><span>New sale</span></button><button type="button" class="sd-act" onclick="App.go('expenses');setTimeout(function(){try{Exp.add()}catch(e){}},80)"><i class="fas fa-wallet"></i><span>Add expense</span></button><button type="button" class="sd-act" onclick="Home.addProduct()"><i class="fas fa-box-open"></i><span>Add product</span></button></div>
       <div class="sd-tiles">
-        ${tile('This month', money(mo.netSales), "App.go('history')", '', 'fa-chart-column', mo.count + ' bill' + (mo.count === 1 ? '' : 's') + ' \u00b7 Sales history')}
-        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '', 'fa-hand-holding-dollar', dueN + ' customer' + (dueN === 1 ? '' : 's') + ' with due')}
-        ${tile('Reports', money(mo.netProfit), "App.go('reports')", mo.netProfit < 0 ? 'bad' : '', 'fa-gauge-high', 'Profit this month \u00b7 ' + (mo.netSales > 0 ? Math.round(mo.netProfit / mo.netSales * 100) + '% margin' : 'no sales yet'), true)}
+        ${tile('This month', money(mo.netSales), "App.go('history')", '', mo.count + ' bill' + (mo.count === 1 ? '' : 's') + ' \u00b7 Sales history')}
+        ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '', dueN + ' customer' + (dueN === 1 ? '' : 's') + ' with due')}
+        ${tile('Reports \u00b7 profit', money(mo.netProfit), "App.go('reports')", mo.netProfit < 0 ? 'bad' : '', 'Profit this month \u00b7 ' + (mo.netSales > 0 ? Math.round(mo.netProfit / mo.netSales * 100) + '% margin' : 'no sales yet'), true)}
       </div>
       ${guide}
       <section class="sd-card"><div class="sd-h"><h3>Last 7 days</h3><span class="sd-mut">${money(r2(days.reduce((a, d) => a + d.v, 0)))}</span></div>
