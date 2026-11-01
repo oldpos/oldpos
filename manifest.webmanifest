@@ -74,11 +74,11 @@
       "label": "Dashboard"
     },
     {
-      "src": "assets/screenshots/desktop-11-users.png",
+      "src": "assets/screenshots/desktop-10-sales-counter.png",
       "sizes": "1440x900",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Users"
+      "label": "Sales counter"
     },
     {
       "src": "assets/screenshots/desktop-03-products.png",

@@ -2,6 +2,15 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.7.0 — Stronger lock · Forgot-PIN question · Lock now · slim dashboard tiles
+- **Forgot PIN with a secret question.** Setting a Home PIN or Admin PIN now includes a recovery question + answer (answer stored only as a salted PBKDF2 hash). *Forgot PIN?* shows the question; the right answer lets you set a new PIN. 5 wrong answers lock it (1/5/15/30/60 min) and are logged. Existing PINs can add one in Settings → Security. New file `js/services/recovery.js`.
+- **Lock again at once.** New 🔒 button in the header (phone + desktop) and a *Lock now* button in Security. It re-locks everything the Admin PIN opened and shows the home lock. Sections also re-lock by themselves after N minutes without a touch. New *Home screen auto-lock: As soon as I leave the app* option.
+- **Drive login on another device** restores the PIN, Admin PIN and recovery question with the backup, so the lock is asked there too. Backup *files* and local copies still never carry or change any PIN/answer (`Core.stripSecrets` / `keepSecrets`).
+- **Dashboard:** *This month*, *Customer due* and *Reports · profit* are now three slim, simple tiles and follow the Admin lock (lock icon, tap + PIN to view; new *Dashboard tiles* switch). Cards below (Recent sales, Needs attention, Top sellers) have an even 12px gap and stack on phones.
+- **Hardening:** hardware-keyboard capture on the lock screen no longer blocks dialogs; lock-out counters reset on PIN change; PIN reset via Google also clears the recovery question.
+- All screenshots (phone + desktop + slideshow) replaced with the current interface; `desktop-11-users.png` (page removed in v12.2) became `desktop-10-sales-counter.png`, new `11-security.png`.
+- Cache `v12.7.0`.
+
 ## v12.6.0 — Secure keypad · three-tile dashboard · fixes
 - **Secure on-screen keypad for every PIN.** Home-screen PIN, Admin PIN (set / change / remove / reset / unlock prompts) are typed on an in-app keypad. The phone keyboard never opens, fields are read-only (no paste, no autofill, no keyboard-app logging), a hardware keyboard still works on desktop. New optional **Scramble keypad digits** (Settings → Security). New file `js/services/keypad.js`.
 - **Dashboard now has exactly three tiles:** *This month*, *Customer due*, *Reports* (profit this month). *Profit* and *Stock value* tiles removed. The Reports tile is hidden behind the Admin PIN when profit lock is on (previously the dashboard profit was never masked).

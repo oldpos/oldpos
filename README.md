@@ -14,7 +14,7 @@ Free · Open Source · Offline · Installable · Backup to your own Google Drive
 
 <img src="assets/screenshots/slideshow.gif" alt="Old POS screenshots" width="360">
 
-<sub>Sign in · Dashboard · Products · Customers · Purchases · Expenses · Sales · Reports · Backup · Menu</sub>
+<sub>Sign in · Dashboard · Products · Customers · Purchases · Expenses · Sales · Reports · Backup · Menu · Security</sub>
 
 <img src="assets/screenshots/desktop-02-dashboard.png" alt="Old POS desktop dashboard" width="760">
 <br><sub>Desktop dashboard</sub>
@@ -42,7 +42,7 @@ Old POS is an open-source project released under the **[MIT License](LICENSE)**.
 - **Products & Stock:** low-stock alerts, expiry, CSV import / export
 - **Purchases, Returns & Expenses**
 - **Reports:** sales, profit, collections, dashboard
-- **Security:** PIN lock, automatic Google Drive backup
+- **Security:** PIN lock with a recovery question ("Forgot PIN"), one-tap 🔒 Lock now, auto-lock when you leave the app, Admin PIN for sensitive sections, automatic Google Drive backup
 - **Feels like a native app:** haptic feedback, back-button handling, app-icon shortcuts (long-press the icon), instant launch from an offline cache
 - **Smooth on low-end phones:** coalesced saves, cached product photos, paged lists, no heavy blur effects
 - **Barcode & scanner hardening (v10.8.0):** (1) Offline-cache bug fixed — `pwa.js` still said v10.7.1, so it deleted the live v10.7.5 cache; both files now say v10.8.0. (2) Direct TSPL printing: stray black bits at the right edge when the label width in dots was not a multiple of 8 (e.g. 300 dpi, 58×40 mm) — padding is now white and the bitmap width is whole bytes. (3) Scanner: products are added automatically on scan — with an Enter or Tab suffix, or with NO suffix (finishes after a short pause), whether the cursor is on the page, in the search box, or even in another POS field; normal typing is never mistaken for a scan; scanner prefixes like `]C1` are ignored; the desktop *Scanner* badge flashes green/red. (4) Bluetooth label printing falls back to 20-byte chunks if the printer rejects larger writes. (5) A4-sheet mode is no longer hijacked by direct printing. (6) Printer setup has a *Scan check* box: Test print → scan the sticker → ✓/✗.
