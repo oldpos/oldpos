@@ -5,12 +5,12 @@
    - Security headers: every page served by this worker carries frame-ancestors 'none', nosniff, a strict referrer policy
      and a Permissions-Policy that only allows the camera (barcode scan) and Bluetooth (printer) for this app.
    App data lives in localStorage + the user's Google Drive; this cache only holds the app files. */
-const CACHE_VERSION = 'v12.3.1';
+const CACHE_VERSION = 'v12.4.0';
 const APP_CACHE = `oldpos-app-${CACHE_VERSION}`;
 
 const CRITICAL = [
   './', './index.html', './offline.html', './manifest.webmanifest',
-  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/icons.css',
+  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/refine.css', './css/icons.css',
   './fonts/inter-latin-var.woff2', './fonts/fa-solid-subset.woff2', './fonts/fa-brands-subset.woff2',
   './js/core/core.js', './js/core/barcode.js', './js/core/wedge.js', './js/core/linear.js', './js/core/ui.js', './js/core/config.js',
   './js/modules/app.js', './js/modules/people.js', './js/modules/misc.js', './js/modules/home.js', './js/modules/settings.js',
@@ -94,35 +94,39 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;           // Google sign-in / Drive calls always go straight to the network
 
-  // Pages: serve the cached copy immediately; fall back to the network, then to the app shell / offline page.
+  // Pages: network first (so a new release shows up on the very next open), cached copy when offline or slow.
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(APP_CACHE);
-      const hit = await cache.match(req, { ignoreSearch: true }) || (isAppRoute(url) ? await cache.match('./index.html') : null);
-      if (hit) return secure(hit);
+      const cached = async () => await cache.match(req, { ignoreSearch: true }) || (isAppRoute(url) ? await cache.match('./index.html') : null);
       try {
-        const res = await fetch(req);
-        if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+        const res = await Promise.race([fetch(new Request(req, { cache: 'no-cache' })), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 3500))]);
+        if (res && res.ok) { cache.put(req, res.clone()).catch(() => {}); return secure(res); }
+        const hit = await cached();
+        if (hit) return secure(hit);
         if (res && res.status === 404) { const nf = await cache.match('./404.html'); if (nf) return secure(new Response(nf.body, { status: 404, statusText: 'Not Found', headers: nf.headers })); }
         return secure(res);
       } catch (_) {
-        return secure((await cache.match('./offline.html')) || (await cache.match('./index.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } }));
+        const hit = await cached();
+        return secure(hit || (await cache.match('./offline.html')) || (await cache.match('./index.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } }));
       }
     })());
     return;
   }
 
-  // Scripts, styles, fonts, images: cache-first (the cache is versioned per release).
+  // Scripts and styles: network first (fresh files after every release), cache when offline. Fonts and images: cache first.
   event.respondWith((async () => {
     const cache = await caches.open(APP_CACHE);
-    const hit = await cache.match(req, { ignoreSearch: true });
-    if (hit) return hit;
+    const fresh = /\.(js|css|webmanifest)$/.test(url.pathname);
+    if (!fresh) { const hit = await cache.match(req, { ignoreSearch: true }); if (hit) return hit; }
     try {
-      const res = await fetch(req);
+      const res = await Promise.race([fetch(req), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), fresh ? 4000 : 15000))]);
       if (res && res.ok && res.type === 'basic') cache.put(req, res.clone()).catch(() => {});
+      if (fresh && res && !res.ok) { const hit = await cache.match(req, { ignoreSearch: true }); if (hit) return hit; }
       return res;
     } catch (_) {
-      return new Response('', { status: 503, statusText: 'Offline' });   // never answer a script/style request with a page
+      const hit = await cache.match(req, { ignoreSearch: true });
+      return hit || new Response('', { status: 503, statusText: 'Offline' });   // never answer a script/style request with a page
     }
   })());
 });

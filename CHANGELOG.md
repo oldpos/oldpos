@@ -2,6 +2,11 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.4.0 — Design refinement · updates show immediately
+- **Whole-app design pass** (`css/refine.css`): quiet flat background, frosted top/bottom bars, one card/control language, softer borders and shadows, clearer headings, better dark mode; desktop dashboard quick actions laid out in a row. Works with every theme.
+- **Updates appear at once:** the service worker now loads pages, scripts and styles from the network first (cache only when offline), so a new release shows on the next open instead of the old cached copy.
+- Cache `v12.4.0`.
+
 ## v12.3.1 — Quick actions · theme picker in menu · deploy fix
 - Dashboard: greeting section removed; under *Today's sales* three buttons — New sale, Add expense, Add product.
 - Menu **Theme** button now opens the theme picker (colour themes + Auto/Light/Dark). The Light/Dark moon button stays in the header.

@@ -1,0 +1,84 @@
+/* Old POS — Design refinement (v12.4.0). Loaded last. Works with every colour theme, light and dark.
+   Skipped for the "Original" look (html.classic). Goals: calmer background, one consistent card / control language,
+   frosted bars, clearer hierarchy, better desktop layout. */
+html:not(.classic){
+  --card-r:18px;
+  --elev-1:0 1px 2px rgba(15,23,42,.04),0 8px 22px -16px rgba(15,23,42,.20);
+  --elev-2:0 2px 4px rgba(15,23,42,.05),0 18px 36px -20px rgba(15,23,42,.30);
+  --line:color-mix(in srgb,var(--text) 9%,transparent);
+}
+html.dark:not(.classic){--elev-1:0 8px 22px -16px rgba(0,0,0,.7);--elev-2:0 18px 36px -20px rgba(0,0,0,.85);--line:color-mix(in srgb,var(--text) 12%,transparent)}
+
+/* ----- background: quiet, almost flat ----- */
+html:not(.classic) body{background:var(--bg)}
+html:not(.classic) body::before,html:not(.classic) body::after{display:none}
+html:not(.classic) .main{background:transparent}
+
+/* ----- bars ----- */
+html:not(.classic) .topbar{background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-bottom:1px solid var(--line);box-shadow:none}
+html:not(.classic) .tb-shop{font-size:15px;letter-spacing:-.01em}
+html:not(.classic) .bottom-nav{background:color-mix(in srgb,var(--card) 86%,transparent);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border-top:1px solid var(--line);box-shadow:0 -10px 30px -22px rgba(15,23,42,.35)}
+html:not(.classic) .bottom-nav button{font-weight:500;letter-spacing:0}
+html:not(.classic) .bottom-nav button.active{font-weight:650;color:var(--primary)}
+html:not(.classic) .sidebar{background:var(--card);border-right:1px solid var(--line);box-shadow:none}
+html:not(.classic) .nav-link{border-radius:12px;font-weight:500;padding-top:10px;padding-bottom:10px}
+html:not(.classic) .nav-link:hover{background:var(--hover)}
+html:not(.classic) .nav-link.active{background:color-mix(in srgb,var(--primary) 11%,var(--card));color:var(--primary);box-shadow:none;font-weight:650}
+html:not(.classic) .nav-link.active i{color:var(--primary)}
+html[data-skin] .nav-link.active{background:color-mix(in srgb,var(--primary) 11%,var(--card));box-shadow:none}
+
+/* ----- cards, stats, rows ----- */
+html:not(.classic) .card,html:not(.classic) .stat,html:not(.classic) .pcard{border-radius:var(--card-r);border:1px solid var(--line);box-shadow:var(--elev-1)}
+html:not(.classic) .pcard:hover,html:not(.classic) .stat:hover{box-shadow:var(--elev-2)}
+html:not(.classic) .stat.hl{background:linear-gradient(135deg,var(--primary2),var(--primary));border-color:transparent;box-shadow:0 14px 28px -16px var(--primary)}
+html:not(.classic) .page-head{margin-bottom:16px}
+html:not(.classic) .page-head h2{font-size:24px;font-weight:750;letter-spacing:-.025em}
+html:not(.classic) .page-head p{font-size:13px}
+html:not(.classic) .row{border-bottom:1px solid var(--line)}
+html:not(.classic) .row:last-child{border-bottom:0}
+html:not(.classic) .row:hover{background:color-mix(in srgb,var(--primary) 5%,var(--card))}
+html:not(.classic) .avatar{border-radius:14px;background:color-mix(in srgb,var(--primary) 12%,var(--card));color:var(--primary)}
+html:not(.classic) .sec-title{font-weight:650}
+html:not(.classic) .pcard .pimg,html:not(.classic) .pcard .thumb{border-radius:14px}
+
+/* ----- controls ----- */
+html:not(.classic) .btn{border-radius:14px;font-weight:600;letter-spacing:0;transition:transform .12s,box-shadow .2s,background .2s,filter .2s}
+html:not(.classic) .btn:active:not(:disabled){transform:scale(.97)}
+html:not(.classic) .btn-primary{background:linear-gradient(135deg,var(--primary2),var(--primary));box-shadow:0 8px 18px -10px var(--primary)}
+html:not(.classic) .btn-primary:hover:not(:disabled){filter:brightness(1.06)}
+html:not(.classic) .btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text)}
+html:not(.classic) .btn-ghost:hover{background:var(--hover)}
+html:not(.classic) .input{border-radius:14px;background:var(--input);border:1px solid var(--border)}
+html:not(.classic) .input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--ring)}
+html:not(.classic) .chip{border-radius:99px;font-weight:550;transition:all .15s}
+html:not(.classic) .chip.on{background:var(--primary);border-color:var(--primary)}
+html:not(.classic) .seg{border-radius:13px}
+html:not(.classic) .badge,html:not(.classic) .b-p{border-radius:99px}
+html:not(.classic) .switch{border-radius:14px}
+html:not(.classic) .modal-sheet{border-radius:24px 24px 0 0;border:1px solid var(--line);box-shadow:0 -18px 50px -20px rgba(0,0,0,.45)}
+html:not(.classic) .modal-head{border-bottom:1px solid var(--line)}
+@media(min-width:700px){html:not(.classic) .modal-sheet{border-radius:24px}}
+html:not(.classic) #toast{border-radius:14px;box-shadow:var(--elev-2)}
+html:not(.classic) ::-webkit-scrollbar{width:10px;height:10px}
+html:not(.classic) ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--text) 18%,transparent);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+
+/* ----- POS ----- */
+html:not(.classic) .pcard .pname,html:not(.classic) .pcard .t{font-weight:600}
+html:not(.classic) .cart-bar{border-radius:18px}
+html:not(.classic) .cart-bar.empty{background:var(--card);border:1px solid var(--line);box-shadow:var(--elev-1)}
+
+/* ----- dashboard ----- */
+html:not(.classic) .sd{max-width:1080px}
+@media(min-width:900px){
+  .sd-acts{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .sd-act{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 16px;font-size:14px;font-weight:600}
+  .sd-act i{width:40px;height:40px}
+  .sd-big{font-size:40px}
+  .sd-spark{width:220px;height:64px}
+  .sd-hero{padding:24px 26px}
+}
+
+/* ----- dark mode warmth ----- */
+html.dark:not(.classic) .sd-act{background:var(--card)}
+html.dark:not(.classic) .sd-act.pri{background:linear-gradient(135deg,var(--primary2),var(--primary))}
+@media(prefers-reduced-motion:reduce){html:not(.classic) *{transition-duration:.01ms!important}}
