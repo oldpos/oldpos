@@ -8,7 +8,8 @@
   const $ = id => document.getElementById(id);
   const ITEMS = [
     ['reports', 'Reports (sales & profit analysis)', 'fa-chart-column'],
-    ['profit', 'Dashboard profit (today & monthly, tap lock to view)', 'fa-lock'],
+    ['tiles', 'Dashboard tiles (this month, customer due, profit)', 'fa-table-cells-large'],
+    ['profit', 'Dashboard profit only (tap lock to view)', 'fa-lock'],
     ['dashboard', 'Dashboard (whole page)', 'fa-gauge-high'],
     ['purchases', 'Purchases & Suppliers (cost prices)', 'fa-truck'],
     ['expenses', 'Expenses', 'fa-money-bill-wave'],
@@ -18,7 +19,7 @@
     ['barcodes', 'Barcode Labels', 'fa-barcode'],
     ['settings', 'Settings, backup & data', 'fa-sliders']
   ];
-  const DEFAULT_LOCKED = ['reports', 'profit', 'purchases', 'expenses', 'settings'];
+  const DEFAULT_LOCKED = ['reports', 'tiles', 'profit', 'purchases', 'expenses', 'settings'];
 
   /* ---- Admin PIN: separate from the home-screen PIN; protects sections/profit from staff ---- */
   const AK = { f: 'esypos_ad_f', u: 'esypos_ad_u' };
@@ -41,23 +42,28 @@
         (has ? '<div class="field"><label class="label">Current Admin PIN</label><input id="ad-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' : '') +
         '<div class="field"><label class="label">New Admin PIN (4 digits)</label><input id="ad-new" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' +
         '<div class="field"><label class="label">Re-enter</label><input id="ad-new2" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' +
-        '<p class="xs muted">Keep this PIN to yourself — it is different from the home-screen PIN your staff may know.</p>',
+        '<p class="xs muted mb3">Keep this PIN to yourself — it is different from the home-screen PIN your staff may know.</p>' + (window.Recovery ? Recovery.fieldsHTML('admin') : ''),
         foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="ad-ok">Save</button>' });
       m.querySelector('#ad-ok').onclick = async () => {
         if (has && (await Admin.check($('ad-old').value)) !== 'ok') { toast('⚠️ Current Admin PIN is wrong'); return; }
         const a = $('ad-new').value, b = $('ad-new2').value;
         if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (Lock.isWeak(a)) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
         if (Lock.has() && await Lock.verify(a)) { toast('⚠️ Admin PIN must be different from the home-screen PIN'); return; }
-        const salt = C.genId(); DB.settings.adminSalt = salt; DB.settings.adminHash = await Lock.hashFor(a, salt); C.save('settings');
+        const rec = window.Recovery ? Recovery.read('admin', a) : null; if (window.Recovery && !rec) return;
+        const salt = C.genId(); DB.settings.adminSalt = salt; DB.settings.adminHash = await Lock.hashFor(a, salt); if (rec) await Recovery.commit('admin', rec);
+        ['esypos_ad_f', 'esypos_ad_u', 'esypos_ad_l'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} }); openUntil = 0; profitOpen = 0;
+        C.save('settings');
         log('Admin PIN ' + (has ? 'changed' : 'set')); Modal.close(m); toast('Admin PIN saved ✓'); App.refresh();
       };
     },
     remove() {
       const m = Modal.open({ title: 'Remove Admin PIN', body: '<p class="muted sm mb3">All section locks stop working until you set a new Admin PIN.</p><div class="field"><label class="label">Current Admin PIN</label><input id="ad-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" autofocus></div>',
         foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-bad" id="ad-ok">Remove</button>' });
-      m.querySelector('#ad-ok').onclick = async () => { if ((await Admin.check($('ad-old').value)) !== 'ok') { toast('⚠️ Wrong Admin PIN'); return; } DB.settings.adminHash = ''; DB.settings.adminSalt = ''; C.save('settings'); log('Admin PIN removed'); Modal.close(m); toast('Admin PIN removed'); App.refresh(); };
+      m.querySelector('#ad-ok').onclick = async () => { if ((await Admin.check($('ad-old').value)) !== 'ok') { toast('⚠️ Wrong Admin PIN'); return; } DB.settings.adminHash = ''; DB.settings.adminSalt = ''; if (window.Recovery) Recovery.clear('admin'); C.save('settings'); log('Admin PIN removed'); Modal.close(m); toast('Admin PIN removed'); App.refresh(); };
     },
-    forgot() {                                       // owner recovery: Google backup, or the home-screen PIN
+    forgot() {                                       // owner recovery: secret question, Google backup, or the home-screen PIN
+      const viaGoogle = (window.Cloud && Cloud.isOn()) ? () => Cloud.resetPin() : null;
+      if (window.Recovery && Recovery.has('admin')) { Recovery.forgot('admin', () => { openUntil = 0; profitOpen = 0; if (window.App) App.refresh(); }, viaGoogle); return; }
       if (window.Cloud && Cloud.isOn()) { Cloud.resetPin(); return; }
       if (Lock.has()) {
         const m = Modal.open({ title: 'Reset Admin PIN', body: '<p class="muted sm mb3">Enter the home-screen PIN to remove the Admin PIN, then set a new one.</p><input id="ad-sp" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input sl-input">',
@@ -90,7 +96,7 @@
     const go = async () => {
       if (busy || inp.value.length < 4) return; busy = true;
       const r = await Admin.check(inp.value);
-      if (r === 'ok') { log('Unlocked: ' + (name || 'section')); if (!noOpen) openUntil = Date.now() + minutes() * 60000; Modal.close(m); done(); }
+      if (r === 'ok') { log('Unlocked: ' + (name || 'section')); if (!noOpen) openUntil = Date.now() + minutes() * 60000; Modal.close(m); if (!noOpen || name === 'profit') setTimeout(() => toast('🔓 Unlocked for ' + minutes() + ' min — tap the 🔒 at the top to lock again'), 250); done(); setTimeout(syncBtns, 0); }
       else {
         log(r === 'wait' ? 'PIN lock-out (too many wrong attempts)' : 'Wrong PIN for ' + (name || 'section'));
         msg.textContent = r === 'wait' ? '⚠️ Too many wrong attempts. Wait ' + Admin.wait() + ' seconds.' : '⚠️ Wrong PIN';
@@ -102,6 +108,37 @@
     m.querySelector('#sl-ok').onclick = go; m.querySelector('#sl-fg').onclick = () => { Modal.close(m); Admin.forgot(); };
     setTimeout(() => inp.focus(), 60);
   }
+
+  /* ---- v12.7: lock again at once, and automatic re-lock after inactivity ---- */
+  const isOpen = () => Date.now() < openUntil || Date.now() < profitOpen;
+  function syncBtns() {
+    const show = !!(Admin.has() || (window.Lock && Lock.has())), open = isOpen();
+    document.querySelectorAll('.js-lockbtn').forEach(b => {
+      b.hidden = !show; b.classList.toggle('is-open', open);
+      const i = b.querySelector('i'); if (i) i.className = 'fas ' + (open ? 'fa-lock-open' : 'fa-lock');
+      const t = open ? 'Unlocked \u2014 tap to lock now' : 'Lock now'; b.title = t; b.setAttribute('aria-label', t);
+    });
+  }
+  function relock() {                                  // everything the Admin PIN opened closes again
+    openUntil = 0; profitOpen = 0;
+    try {
+      if (Admin.has() && App.view !== 'pos' && lockedList().indexOf(App.view) >= 0) App.go('pos');
+      else if (App.view === 'dashboard') App.refresh();
+    } catch (e) { console.warn('[Guard]', e); }
+    syncBtns();
+  }
+  let wasOpen = false;
+  setInterval(() => {
+    try {
+      const o = isOpen();
+      if (wasOpen && !o) { if (window.Modal && Modal.stack.length) { openUntil = profitOpen = Date.now() + 15000; return; } relock(); }   // inactivity ended it (a dialog in use gets a little longer)
+      wasOpen = isOpen(); syncBtns();
+    } catch (_) {}
+  }, 1000);
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, () => {         // "re-lock after N minutes" counts from the LAST touch, not from the unlock
+    const n = Date.now(), t = n + minutes() * 60000;
+    if (n < openUntil) openUntil = t; if (n < profitOpen) profitOpen = t;
+  }, { capture: true, passive: true }));
 
   function hookGo() {
     if (!window.App || App.__goGuard) return; App.__goGuard = true;
@@ -128,19 +165,24 @@
   /* ---- dashboard profit mask: lock icon, tap + PIN to reveal ---- */
   let profitOpen = 0;
   const profitLocked = () => !!(Admin.has() && lockedList().indexOf('profit') >= 0 && Date.now() > profitOpen);
+  const tilesLocked = () => !!(Admin.has() && lockedList().indexOf('tiles') >= 0 && Date.now() > profitOpen);
   function maskProfit() {
-    const view = $('view'); if (!view || !profitLocked()) return;
-    view.querySelectorAll('.stat[data-profit],.hm[data-profit],.sd-tile[data-profit]').forEach(el => {
+    const view = $('view'); if (!view) return;
+    const pl = profitLocked(), tl = tilesLocked(); if (!pl && !tl) return;
+    const sel = [pl ? '.stat[data-profit],.hm[data-profit],.sd-tile[data-profit]' : '', tl ? '.sd-tile[data-tile]' : ''].filter(Boolean).join(',');
+    view.querySelectorAll(sel).forEach(el => {
       const v = el.querySelector('.v'); if (!v || el.classList.contains('stat-locked')) return;
+      const tile = el.classList.contains('sd-tile');
       el.classList.add('stat-locked'); el.setAttribute('role', 'button'); el.tabIndex = 0;
-      el.setAttribute('aria-label', 'Profit hidden. Tap to enter PIN');
-      v.dataset.real = v.innerHTML; v.innerHTML = '<span class="lock-mask"><i class="fas fa-lock"></i><em>Tap to view</em></span>';
-      const open = () => ask(() => { profitOpen = Date.now() + minutes() * 60000; log('Profit revealed'); if (App.view === 'dashboard') App.refresh(); }, 'profit', true);
+      el.setAttribute('aria-label', (tile ? 'Hidden' : 'Profit hidden') + '. Tap to enter PIN');
+      v.dataset.real = v.innerHTML; v.innerHTML = '<span class="lock-mask"><i class="fas fa-lock"></i>' + (tile ? '<span class="lm-d">\u2022\u2022\u2022\u2022</span>' : '') + '<em>Tap to view</em></span>';
+      const open = () => ask(() => { profitOpen = Date.now() + minutes() * 60000; log(tile ? 'Dashboard figures revealed' : 'Profit revealed'); if (App.view === 'dashboard') App.refresh(); setTimeout(syncBtns, 0); }, 'profit', true);
       el.onclick = open; el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
     });
   }
   function migrate() {
     if (!DB.settings.adminMigrated) { DB.settings.adminMigrated = 1; if (DB.settings.pinHash && !DB.settings.adminHash) { DB.settings.adminHash = DB.settings.pinHash; DB.settings.adminSalt = DB.settings.pinSalt; } C.save('settings'); }
+    if (!DB.settings.tilesLockInit) { DB.settings.tilesLockInit = 1; if (Array.isArray(DB.settings.lockedViews) && DB.settings.lockedViews.indexOf('tiles') < 0) DB.settings.lockedViews.push('tiles'); C.save('settings'); }   // v12.7: the three dashboard tiles follow the Admin lock
     if (DB.settings.profitLockInit) return; DB.settings.profitLockInit = 1;
     if (Array.isArray(DB.settings.lockedViews) && DB.settings.lockedViews.indexOf('profit') < 0) DB.settings.lockedViews.push('profit');
     C.save('settings');
@@ -152,18 +194,18 @@
 
   function card() {
     const host = document.querySelector('#view .st-sec[data-s="security"]'); if (!host) return;
-    const has = Admin.has(), L = lockedList(), mins = minutes(), auto = Math.max(3, parseInt(DB.settings.autoLockMin, 10) || 3);
+    const has = Admin.has(), L = lockedList(), mins = minutes(), auto = parseInt(DB.settings.autoLockMin, 10) === 0 ? 0 : Math.max(3, parseInt(DB.settings.autoLockMin, 10) || 3);
     const opt = (v, cur, txt) => '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + txt + '</option>';
     const html = '<div class="card pad mb3" id="guard-card"><div class="sec-title"><i class="fas fa-user-shield ptext"></i> 2. Admin lock (hide info from staff)</div>' +
-      (has ? '<p class="muted sm mb3">ON — ticked sections and profit need the <b>Admin PIN</b>. Staff can still sell.</p><div class="flex gap2 mb3"><button class="btn btn-ghost grow" onclick="AdminLock.setup()">Change Admin PIN</button><button class="btn btn-danger-soft grow" onclick="AdminLock.remove()">Remove</button></div>' :
+      (has ? '<p class="muted sm mb3">ON — ticked sections and profit need the <b>Admin PIN</b>. Staff can still sell.</p><div class="flex gap2 mb3"><button class="btn btn-ghost grow" onclick="AdminLock.setup()">Change Admin PIN</button><button class="btn btn-danger-soft grow" onclick="AdminLock.remove()">Remove</button></div><button class="btn btn-primary btn-block mb3" onclick="Guard.lockNow()"><i class="fas fa-lock"></i> Lock now</button>' + (window.Recovery ? Recovery.rowHTML('admin') + '<div class="mb3"></div>' : '') :
         '<p class="muted sm mb3">OFF — set a separate Admin PIN to choose what staff cannot see.</p><button class="btn btn-primary btn-block mb3" onclick="AdminLock.setup()"><i class="fas fa-lock"></i> Set Admin PIN</button>') +
       '<div class="muted xs mb2">Choose what to lock:</div>' +
       ITEMS.map(i => '<label class="switch"><span class="sm fw6"><i class="fas ' + i[2] + ' ptext"></i> ' + esc(i[1]) + '</span><input type="checkbox" ' + (L.indexOf(i[0]) >= 0 ? 'checked' : '') + ' onchange="Guard.toggle(\'' + i[0] + '\',this.checked)"></label>').join('') +
-      '<div class="grid2 mt3"><div class="field"><label class="label">Re-lock sections after</label><select class="input" onchange="Guard.set(\'sectionLockMin\',this.value)">' +
+      '<div class="grid2 mt3"><div class="field"><label class="label">Re-lock sections after no activity</label><select class="input" onchange="Guard.set(\'sectionLockMin\',this.value)">' +
       opt(1, mins, '1 minute') + opt(2, mins, '2 minutes') + opt(5, mins, '5 minutes') + opt(15, mins, '15 minutes') + '</select></div>' +
-      '<div class="field"><label class="label">Home screen re-lock after idle</label><select class="input" onchange="Guard.set(\'autoLockMin\',this.value)">' +
-      opt(3, auto, '3 minutes') + opt(5, auto, '5 minutes') + opt(10, auto, '10 minutes') + opt(15, auto, '15 minutes') + '</select></div></div>' +
-      '<p class="xs muted mt2">5 wrong PINs lock the keypad for 30 seconds.</p></div>';
+      '<div class="field"><label class="label">Home screen auto-lock</label><select class="input" onchange="Guard.set(\'autoLockMin\',this.value)">' +
+      opt(0, auto, 'As soon as I leave the app') + opt(3, auto, '3 minutes idle') + opt(5, auto, '5 minutes idle') + opt(10, auto, '10 minutes idle') + opt(15, auto, '15 minutes idle') + '</select></div></div>' +
+      '<p class="xs muted mt2">5 wrong PINs lock the keypad (30 s, then 1 / 5 / 15 / 30 min if it keeps happening). The 🔒 button at the top locks everything again at once.</p></div>';
     const L2 = logs().slice(0, 10), last = parseInt(localStorage.getItem('esypos_g_last') || '0', 10), cnt = parseInt(localStorage.getItem('esypos_g_cnt') || '0', 10);
     const on = localStorage.getItem('esypos_g_on') === '1', dirty = localStorage.getItem('esypos_g_dirty') === '1';
     const health = '<div class="card pad mb3" id="health-card"><div class="sec-title"><i class="fas fa-shield-halved ptext"></i> Backup health</div>' +
@@ -192,8 +234,14 @@
 
   const Guard = window.Guard = {
     toggle(id, on) { const L = lockedList().slice(), i = L.indexOf(id); if (on && i < 0) L.push(id); if (!on && i >= 0) L.splice(i, 1); DB.settings.lockedViews = L; C.save('settings'); },
-    set(k, v) { DB.settings[k] = parseInt(v, 10) || 1; C.save('settings'); toast('Saved ✓'); },
-    needs, log,
+    set(k, v) { const n = parseInt(v, 10); DB.settings[k] = (k === 'autoLockMin' && n === 0) ? 0 : (n || 1); C.save('settings'); toast('Saved ✓'); },
+    needs, log, syncBtns, relock, isOpen,
+    lockNow() {                                      // one button: closes everything the Admin PIN opened AND shows the home-screen lock
+      const adm = Admin.has(), home = !!(window.Lock && Lock.has());
+      if (!adm && !home) { toast('Set a PIN first: Settings → Security'); return; }
+      relock();
+      if (home) Lock.show(() => {}); else toast('🔒 Locked');
+    },
     confirmPin(cb, name) { if (Admin.has()) ask(cb, name, true); else cb(); },   // always asks for the PIN (used before deleting a bill)
     clearLog() { try { localStorage.removeItem(LOGK); } catch (_) {} App.refresh(); },
     async localSave() { const ok = await Safety.saveCopy(true); toast(ok ? 'Copy saved ✓' : 'Could not save a copy'); localCard(); },

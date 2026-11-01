@@ -182,7 +182,7 @@
     await saveCopy(true);                                                  // keep the current state too before replacing it
     const C = window.Core, DB = C.DB;
     Object.keys(C.K).forEach(k => {
-      if (k === 'settings') { const keep = { pinHash: DB.settings.pinHash || '', pinSalt: DB.settings.pinSalt || '', adminHash: DB.settings.adminHash || '', adminSalt: DB.settings.adminSalt || '' }; DB.settings = Object.assign({}, C.DEFAULTS, d.settings || {}, keep); }   // a copy can never change the PINs
+      if (k === 'settings') { const keep = C.keepSecrets(); DB.settings = Object.assign({}, C.DEFAULTS, d.settings || {}, keep); }   // a copy can never change the PINs
       else if (k === 'cart') DB.cart = [];
       else DB[k] = Array.isArray(d[k]) ? d[k].filter(x => x && typeof x === 'object') : [];
     });
@@ -192,7 +192,7 @@
   async function downloadCopy(t) {
     const c = (await IDB.copies()).find(x => x.t === t); if (!c) return;
     let txt = c.data;
-    try { const d = JSON.parse(c.data); d.settings = Object.assign({}, d.settings, { pinHash: '', pinSalt: '', adminHash: '', adminSalt: '' }); txt = JSON.stringify(d); } catch (_) {}   // a downloaded file never carries PIN hashes
+    try { const d = JSON.parse(c.data); d.settings = window.Core.stripSecrets(d.settings); txt = JSON.stringify(d); } catch (_) {}   // a downloaded file never carries PIN hashes
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
     a.download = 'OldPOS-local-copy-' + new Date(c.t).toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json'; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
