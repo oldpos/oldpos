@@ -144,27 +144,35 @@ html:not(.classic) .sd-link:hover{text-decoration:underline}
 @media(max-width:1023px){.db-theme{display:none}}
 .db-actions{gap:10px}
 
-/* ---- dashboard: three tiles, each with a small caption ---- */
-.sd-tile .sd-tt small{display:block;margin-top:2px;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sd-tile .sd-go{flex:none;font-size:11px;color:var(--muted);opacity:.55;transition:transform .15s,opacity .15s}
-.sd-tile:hover .sd-go{opacity:1;transform:translateX(2px)}
-.sd-tile .bad{color:var(--bad)}
-/* three tiles: This month · Customer due · Reports */
-.sd-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
-.sd-tile{display:flex;align-items:center;gap:12px}
-.sd-tile .sd-tt{flex:1;min-width:0}
-.sd-tile .sd-tt b{font-size:20px;line-height:1.25}
-@media(max-width:600px){
-  .sd-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .sd-tiles .sd-tile:nth-child(3){grid-column:1/-1}
+/* ---- dashboard (v12.7): three slim, simple tiles + even spacing between every block ---- */
+html body .sd{display:flex;flex-direction:column;gap:12px;padding:0 0 28px}
+html body .sd>*{margin:0}
+html body .sd .guide{margin-top:0}
+html body .sd .sd-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+html body .sd .sd-tiles .sd-tile{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:0;min-height:52px;padding:8px 12px;cursor:pointer;
+  background:var(--card);border:1px solid var(--line,var(--border));border-radius:12px;box-shadow:none;transform:none;transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
+html body .sd .sd-tiles .sd-tile:hover{background:var(--hover,var(--card));border-color:color-mix(in srgb,var(--primary) 35%,var(--border));transform:none}
+html body .sd .sd-tiles .sd-tile:active{background:var(--hover,var(--card));transform:none}
+html body .sd .sd-tiles .sd-tile:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+html body .sd .sd-tile .sd-tk{display:block;font-size:11.5px;line-height:1.3;font-weight:400;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .sd .sd-tile b.v{display:block;height:21px;min-height:0;margin:0;font-size:15.5px;font-weight:600;line-height:21px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .sd .sd-tile .lock-mask{display:flex;align-items:center;padding:0;gap:6px;height:21px;background:none;color:var(--muted);font-size:13px;font-weight:600;letter-spacing:0}
+html body .sd .sd-tile .lock-mask i{font-size:11px}
+html body .sd .sd-tile .lock-mask .lm-d{display:inline;font-size:inherit;color:inherit;letter-spacing:1.5px}
+html body .sd .sd-tile .lock-mask em{display:none}
+@media(min-width:760px){
+  html body .sd .sd-tiles{gap:12px}
+  html body .sd .sd-tiles .sd-tile{min-height:56px;padding:9px 16px}
+  html body .sd .sd-tile .sd-tk{font-size:12.5px}
+  html body .sd .sd-tile b.v{font-size:17px}
 }
-@media(min-width:1100px){
-  .sd-tile{flex-direction:column;align-items:flex-start;gap:10px;padding:16px;position:relative}
-  .sd-tile .sd-go{position:absolute;top:16px;right:16px}
-  .sd-tile .sd-tt{width:100%}
-  .sd-tile .sd-tt b{font-size:22px}
-}
-@media(max-width:600px){.sd-tile .sd-tt small{font-size:11px}}
+/* the cards under the chart never touch: one column on phones, two on wide screens, always 12px apart */
+html body .sd .sd-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+html body .sd .sd-cols .sd-card{margin:0}
+@media(min-width:760px){html body .sd .sd-cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.js-lockbtn[hidden]{display:none!important}
+@media(max-width:1023px){html body .topbar .tb-theme{width:38px;height:38px}html body .topbar .topbar-actions{gap:6px}}
+.js-lockbtn.is-open{color:var(--warn,#b45309)}
 
 /* ---- Top sellers ---- */
 .sd-top{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line,var(--border))}
@@ -200,3 +208,11 @@ html:not(.classic):not(.dark){--muted:#566377;--ok:#047857}
 html:not(.classic) .cart-bar.empty small,html:not(.classic) .cart-bar.empty .cb-sub{color:var(--muted);opacity:1}
 /* "Original" look in dark mode: slightly deeper blue behind white text */
 html.classic.dark{--grad:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%)}
+
+/* ---- recovery question + dialogs over the full-screen lock (v12.7) ---- */
+.rec-box{margin-top:14px;padding:12px;border:1px solid var(--line,var(--border));border-radius:12px;background:color-mix(in srgb,var(--primary) 4%,var(--card))}
+.rec-box .label{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.rec-box .label i{color:var(--acc,var(--primary))}
+.rec-q{padding:11px 12px;border-radius:10px;background:color-mix(in srgb,var(--primary) 8%,var(--card));border:1px solid var(--line,var(--border));font-weight:600;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere}
+.rec-msg{min-height:20px;margin-top:8px;color:var(--bad)}
+.modal-back.rec-top{z-index:320}
