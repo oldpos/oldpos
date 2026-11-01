@@ -2,6 +2,14 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.5.0 — Readable on every theme · mode button in the desktop header · richer dashboard · user list in the Sheet
+- **Fixed: text hard to see on the other themes.** Bright theme colours (especially in dark mode — e.g. Graphite, Ocean, Emerald) had white text on them (*New sale*, primary buttons, selected chips, cart bar, avatars). Every filled surface now uses a deep brand fill (`--fill`) that always carries white text (contrast ≥ 4.5), and coloured text/icons use `--acc`. Checked on all 8 themes × light/dark × phone/desktop.
+- **Dark / Light button added to the desktop header** (next to Backup and Telegram), like the phone header.
+- **Dashboard:** new **Profit · this month** tile (opens Reports) next to Stock value, every tile has a small caption (bills, margin, customers with due, product count / low stock), and a **Top sellers · this month** card with bars. Four tiles in a row on wide screens, 2×2 on tablets, one list on phones.
+- **Design:** one card / tile / button language, tabular numbers, visible focus rings, calmer shadows.
+- **User list in the Google Sheet:** the row now also keeps the user's **name, e-mail, device (type / model), system, browser, screen, time zone, first seen, last seen and active days**. Old rows are filled in the next time that user opens the app. **You must update the Apps Script** — see `tools/SETUP-bn.md`. Privacy Policy updated.
+- Cache `v12.5.0`.
+
 ## v12.4.0 — Design refinement · updates show immediately
 - **Whole-app design pass** (`css/refine.css`): quiet flat background, frosted top/bottom bars, one card/control language, softer borders and shadows, clearer headings, better dark mode; desktop dashboard quick actions laid out in a row. Works with every theme.
 - **Updates appear at once:** the service worker now loads pages, scripts and styles from the network first (cache only when offline), so a new release shows on the next open instead of the old cached copy.

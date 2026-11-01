@@ -205,7 +205,7 @@
 
   /* ---- user counter v3 (Google Apps Script + Google Sheet) ----
      Counts Google ACCOUNTS, once each, starting from zero. The id is an anonymous fingerprint of the signed-in e-mail
-     (SHA-256, cut to 32 characters) — the e-mail itself never leaves the device. Signing in, out or re-installing never counts twice.
+     (SHA-256, cut to 32 characters) used to count each account once. From v12.5.0 the Sheet row also holds the Google name, e-mail and a short device description (see Privacy Policy). Signing in, out or re-installing never counts twice.
      Visitors who are not signed in only READ the total. It refreshes live (one light request a minute while the app is open).
      The Sheet keeps one row per account — see tools/user-counter.gs and tools/SETUP-bn.md. */
   const LS = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} } };
@@ -213,7 +213,7 @@
   const api = () => ((cfg().userCounterApi) || '').trim();
   const BOT = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|phantom|puppeteer|playwright/i;
   const human = () => { try { return !navigator.webdriver && !BOT.test(navigator.userAgent || ''); } catch (_) { return true; } };
-  const K_TOTAL = 'esypos_uc3', K_ID = 'esypos_uc3_id';                  // new keys: the old cached number is simply ignored
+  const K_TOTAL = 'esypos_uc3', K_ID = 'esypos_uc4_id';                  // new keys: the old cached number is simply ignored
   function pill() {
     const raw = LS.get(K_TOTAL), n = raw === null ? null : (parseInt(raw, 10) || 0);
     document.querySelectorAll('.js-ucount').forEach(e => { e.textContent = n === null ? '—' : n.toLocaleString('en-US'); });
@@ -224,12 +224,56 @@
     const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('oldpos-user-v3|' + em));
     return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
   }
+  /* Who + what device (v12.5.0): the Sheet row also gets the Google name, e-mail and a short device description,
+     so the owner can see who the users are. Sent only when the user is signed in; re-sent once if any of it changes. */
+  function deviceInfo() {
+    const ua = navigator.userAgent || '', n = navigator;
+    const m = (re) => { const x = ua.match(re); return x ? x[1] : ''; };
+    let os = 'Other';
+    if (/Android/i.test(ua)) os = 'Android ' + m(/Android\s([\d.]+)/i);
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS ' + m(/OS\s([\d_]+)/i).replace(/_/g, '.');
+    else if (/Windows NT/i.test(ua)) os = 'Windows ' + ({ '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' }[m(/Windows NT\s([\d.]+)/i)] || '');
+    else if (/Mac OS X/i.test(ua)) os = 'macOS ' + m(/Mac OS X\s([\d_.]+)/i).replace(/_/g, '.');
+    else if (/CrOS/i.test(ua)) os = 'ChromeOS';
+    else if (/Linux/i.test(ua)) os = 'Linux';
+    let br = 'Browser';
+    if (/Edg\//.test(ua)) br = 'Edge ' + m(/Edg\/(\d+)/);
+    else if (/OPR\/|Opera/.test(ua)) br = 'Opera ' + m(/OPR\/(\d+)/);
+    else if (/SamsungBrowser/.test(ua)) br = 'Samsung Internet ' + m(/SamsungBrowser\/(\d+)/);
+    else if (/Firefox\//.test(ua)) br = 'Firefox ' + m(/Firefox\/(\d+)/);
+    else if (/Chrome\/|CriOS/.test(ua)) br = 'Chrome ' + m(/(?:Chrome|CriOS)\/(\d+)/);
+    else if (/Safari\//.test(ua)) br = 'Safari ' + m(/Version\/(\d+)/);
+    const touch = (n.maxTouchPoints || 0) > 1, sw = Math.min(screen.width || 0, screen.height || 0);
+    const kind = /iPad|Tablet/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua)) || (/Macintosh/i.test(ua) && touch) ? 'Tablet' : (/Mobi|iPhone|iPod|Android/i.test(ua) ? 'Phone' : 'Computer');
+    const app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || n.standalone === true ? 'Installed app' : 'Browser';
+    return { kind, os: os.trim(), br: br.trim(), scr: (screen.width || 0) + 'x' + (screen.height || 0), app, lang: (n.language || '').slice(0, 12), tz: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } })(), sw };
+  }
+  async function deviceModel() {          // Android phones report the model (e.g. "SM-A546E") through Client Hints
+    try {
+      const u = navigator.userAgentData; if (!u || !u.getHighEntropyValues) return '';
+      const h = await Promise.race([u.getHighEntropyValues(['model']), new Promise(r => setTimeout(() => r({}), 1500))]);
+      return String((h && h.model) || '').slice(0, 40);
+    } catch (_) { return ''; }
+  }
+  async function profile() {
+    const d = deviceInfo(), model = await deviceModel();
+    return {
+      n: (LS.get('esypos_g_name') || '').trim().slice(0, 100),
+      e: (LS.get('esypos_g_email') || '').trim().toLowerCase().slice(0, 120),
+      d: (d.kind + (model ? ' · ' + model : '')).slice(0, 80),
+      o: d.os.slice(0, 40), b: (d.br + ' · ' + d.app).slice(0, 60), s: d.scr, z: d.tz.slice(0, 40)
+    };
+  }
   async function viaScript(a, id, signal) {
-    const done = !id || LS.get(K_ID) === id;
-    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + (done ? 'a=count' : 'a=hit&id=' + encodeURIComponent(id)), { signal, cache: 'no-store' });
+    let pr = null, sig = '';
+    if (id) { pr = await profile(); sig = id + '|' + pr.n + '|' + pr.e + '|' + pr.d + '|' + pr.o + '|' + pr.b + '|' + new Date().toISOString().slice(0, 10); }   // + today: one light update a day keeps “last seen” right
+    const done = !id || LS.get(K_ID) === sig;
+    let q = 'a=count';
+    if (!done) q = 'a=hit&id=' + encodeURIComponent(id) + Object.keys(pr).map(k => '&' + k + '=' + encodeURIComponent(pr[k])).join('');
+    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + q, { signal, cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
     if (!j || !j.ok) return;
-    if (!done) LS.set(K_ID, id);                                          // remembered only after the server confirmed
+    if (!done) LS.set(K_ID, sig);                                         // remembered only after the server confirmed
     if (typeof j.total === 'number') {
       const old = parseInt(LS.get(K_TOTAL) || '0', 10) || 0;
       LS.set(K_TOTAL, String(Math.max(old, j.total)));                   // never goes down on screen

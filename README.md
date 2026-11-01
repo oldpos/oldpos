@@ -60,7 +60,7 @@ Old POS is an open-source project released under the **[MIT License](LICENSE)**.
 3. On phone: **Add to Home screen**
 
 ## Live user counter (Google Sheet)
-Old POS shows **Total users** in the menu — a plain number, nothing to tap. Every visiting device is counted **once** (the id is kept on the device, so login / logout / clearing data never counts it again); bots are ignored. The number refreshes live (one light request a minute while the app is open). No name, e-mail, shop data, country or city is stored.
+Old POS shows **Total users** in the menu — a plain number, nothing to tap. Every Google account is counted **once** (login / logout / clearing data never counts it again); bots are ignored. The number refreshes live (one light request a minute while the app is open). **From v12.5.0 the Sheet row also stores the user's Google name, e-mail and a short device description (type/model, system, browser, screen, time zone) with first-seen / last-seen time** — disclosed in the Privacy Policy. No shop data is ever sent.
 
 The count lives in **your own Google Sheet** through a small Google Apps Script. Setup (Bangla, step by step): [`tools/SETUP-bn.md`](tools/SETUP-bn.md) · script: [`tools/user-counter.gs`](tools/user-counter.gs). Paste the web-app URL into `userCounterApi` in `js/core/config.js`.
 
