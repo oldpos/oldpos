@@ -10,7 +10,7 @@
   const DEFAULTS = {
     shopName: 'My Shop', shopAddress: '', shopPhone: '', defaultTax: 0,
     footer: 'Thank you! Come again', paper: '58', btMode: 'image',
-    invPrefix: '', nextInvoice: 1, pinHash: '', pinSalt: '', lowStockDefault: 5, currency: '\u09F3',
+    invPrefix: '', nextInvoice: 1, pinHash: '', pinSalt: '', pinQ: '', pinAS: '', pinAH: '', admQ: '', admAS: '', admAH: '', lowStockDefault: 5, currency: '\u09F3',
     businessType: 'retail', barcodePrefix: 'ESY', nextBarcode: 1000001, barcodeFormat: 'code128', taxId: ''
   };
   const DB = { products: [], sales: [], customers: [], payments: [], suppliers: [], purchases: [],
@@ -326,7 +326,11 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
-  const api = { K, DEFAULTS, DB, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
+  // v12.7: every lock secret lives in one list, so a backup file / local copy can never carry, set or remove any of them.
+  const SECRET_KEYS = ['pinHash', 'pinSalt', 'adminHash', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'];
+  const stripSecrets = s => { const o = Object.assign({}, s || {}); SECRET_KEYS.forEach(k => { o[k] = ''; }); return o; };
+  const keepSecrets = () => { const o = {}; SECRET_KEYS.forEach(k => { o[k] = (DB.settings && DB.settings[k]) || ''; }); return o; };
+  const api = { K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
     fmtDate, fmtTime, fmtDT, invLabel, toast, unitLabel, findProduct, findCustomer, findSupplier, findSale, customerBalance, supplierBalance, totalCustomerDue,
     totalSupplierDue, returnedQty, returnedAmount, customerLedger, supplierLedger, buildReport, stockValue, toCSV, parseCSV, download, inRange };
   root.Core = api;

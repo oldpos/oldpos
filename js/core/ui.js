@@ -163,7 +163,7 @@
   // Manual, optional backup file (never automatic). The PIN hash is left out so the file cannot be used to guess the PIN.
   window.exportBackupFile = function () {
     const out = { app: 'Old POS', version: 4, exportDate: new Date().toISOString() };
-    Object.keys(K).forEach(k => { if (k === 'cart') return; out[k] = k === 'settings' ? Object.assign({}, DB.settings, { pinHash: '', pinSalt: '', adminHash: '', adminSalt: '' }) : DB[k]; });
+    Object.keys(K).forEach(k => { if (k === 'cart') return; out[k] = k === 'settings' ? Core.stripSecrets(DB.settings) : DB[k]; });
     Core.download('oldpos-backup-' + Core.todayKey() + '.json', JSON.stringify(out), 'application/json');
     try { localStorage.setItem('esypos_last_backup', String(Date.now())); } catch (_) {}
     toast('✓ Backup file saved');
@@ -187,7 +187,7 @@
         const clean = {}; let dropped = 0;
         Object.keys(K).forEach(k => { if (k === 'settings' || k === 'cart') return; clean[k] = cleanColl(k, d[k]); dropped += (Array.isArray(d[k]) ? d[k].length : 0) - clean[k].length; });
         askConfirm(`Backup has ${clean.products.length} products, ${clean.sales.length} sales, ${clean.customers.length} customers. Current data will be replaced.` + (dropped > 0 ? ` (${dropped} damaged record${dropped > 1 ? 's' : ''} will be skipped.)` : '') + ' Tip: save a backup file of the current data first.', () => {
-          Object.keys(K).forEach(k => { if (k === 'settings') { const keep = { pinHash: DB.settings.pinHash || '', pinSalt: DB.settings.pinSalt || '', adminHash: DB.settings.adminHash || '', adminSalt: DB.settings.adminSalt || '' }; DB.settings = Object.assign({}, Core.DEFAULTS, d.settings || {}, keep);   /* a backup file can never set or remove the PINs */ } else if (k === 'cart') DB.cart = []; else DB[k] = clean[k]; });
+          Object.keys(K).forEach(k => { if (k === 'settings') { const keep = Core.keepSecrets(); DB.settings = Object.assign({}, Core.DEFAULTS, d.settings || {}, keep);   /* a backup file can never set or remove the PINs */ } else if (k === 'cart') DB.cart = []; else DB[k] = clean[k]; });
           Core.migrate(); saveAll(); toast('Restore successful ✓'); setTimeout(() => location.reload(), 700);
         }, { title: 'Restore backup?', yes: 'Yes, restore', danger: true });
       } catch (err) { toast('⚠️ Not a valid Old POS backup file'); }
