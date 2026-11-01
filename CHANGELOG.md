@@ -2,6 +2,11 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.3.1 — Quick actions · theme picker in menu · deploy fix
+- Dashboard: greeting section removed; under *Today's sales* three buttons — New sale, Add expense, Add product.
+- Menu **Theme** button now opens the theme picker (colour themes + Auto/Light/Dark). The Light/Dark moon button stays in the header.
+- GitHub Pages: `.github/workflows/static.yml` with `concurrency` fixes "in progress deployment" failures.
+
 ## v12.3.0 — Fresh user count · account auto-detect · colour themes · modern dashboard
 - **Counter starts from zero.** It now counts **Google accounts** (one account = one user, anonymous fingerprint — the e-mail is never stored) in a new sheet tab `users`. Old numbers and `userCountOffset` are ignored. Updated `tools/user-counter.gs` (+ `resetToZero()`), `tools/SETUP-bn.md`.
 - Users who registered earlier keep all their data (it lives in their own Google Drive); they are counted once, anew, when they sign in.

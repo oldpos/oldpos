@@ -128,3 +128,14 @@ html.dark .sd-card{box-shadow:0 10px 24px -18px rgba(0,0,0,.7)}
   .sd-tiles{border-radius:16px}
 }
 @media(prefers-reduced-motion:reduce){.sd-btn,.sd-tile,.sd-bar i{transition:none}}
+
+/* quick actions under Today's sales */
+.sd-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.sd-act{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0;padding:14px 6px;border-radius:16px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:500;text-align:center;transition:transform .15s,border-color .2s}
+.sd-act i{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:15px;color:var(--primary);background:color-mix(in srgb,var(--primary) 12%,var(--card))}
+.sd-act span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd-act:hover{border-color:color-mix(in srgb,var(--primary) 35%,var(--border))}
+.sd-act:active{transform:scale(.97)}
+.sd-act.pri{background:linear-gradient(135deg,var(--primary2),var(--primary));border-color:transparent;color:#fff;box-shadow:0 10px 20px -12px var(--primary)}
+.sd-act.pri i{color:#fff;background:rgba(255,255,255,.2)}
+.sd{padding-top:0}

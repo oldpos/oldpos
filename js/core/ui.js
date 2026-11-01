@@ -139,6 +139,10 @@
       document.querySelectorAll('meta[name=theme-color]').forEach(m => { m.removeAttribute('media'); m.content = Theme.isDark() ? (cs || '#0d1628') : (cs || '#edf2fd'); });
     },
     set(id) { if (!SKINS.some(x => x.id === id)) id = 'classic'; this.mode = id; try { localStorage.setItem('esypos_skin', id); } catch (_) {} this.apply(); { try { Core.toast('Theme: ' + SKINS.find(x => x.id === id).name); } catch (_) {} } },
+    picker() {
+      const seg = '<div class="mode-seg mt3" role="group" aria-label="Mode">' + [['auto', 'fa-mobile-screen', 'Auto'], ['light', 'fa-sun', 'Light'], ['dark', 'fa-moon', 'Dark']].map(m => `<button type="button" data-m="${m[0]}" class="${Theme.mode === m[0] ? 'on' : ''}" onclick="Theme.set('${m[0]}')"><i class="fas ${m[1]}"></i> ${m[2]}</button>`).join('') + '</div>';
+      Modal.open({ title: 'Theme', body: this.html() + seg, foot: '<button class="btn btn-primary" onclick="Modal.closeFrom(this)">Done</button>' });
+    },
     html() {
       return '<div class="skin-grid" role="group" aria-label="Colour theme">' + SKINS.map(k =>
         `<button type="button" class="skin-card ${k.id === this.mode ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${k.id === this.mode}" onclick="Skin.set('${k.id}')" style="--sk-c:${k.c};--sk-bg:${k.bg}"><span class="sk-prev"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i></span><span class="sk-tick"><i class="fas fa-check"></i></span><b>${k.name}</b><small>${k.note}</small></button>`).join('') + '</div>';
