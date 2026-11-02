@@ -2,7 +2,7 @@
    offline/online badge, self-repair of the offline cache, persistent storage, and a small window.PWA API. */
 (function () {
   'use strict';
-  const CACHE_VERSION = 'v12.7.0';   // MUST equal sw.js — if they differ, clearOldCaches() deletes the live offline cache
+  const CACHE_VERSION = 'v12.7.1';   // MUST equal sw.js — if they differ, clearOldCaches() deletes the live offline cache
   const LS = {
     get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
     set(k, v) { try { localStorage.setItem(k, String(v)); } catch (_) {} }
@@ -150,6 +150,7 @@
   /* ---- Display-mode class (CSS can style the installed app) ---- */
   function mark() { document.documentElement.classList.toggle('pwa-standalone', isStandalone()); }
   mark();
+  (function () { const ok = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen); const sync = () => document.querySelectorAll('.js-fsbtn').forEach(b => { b.hidden = !ok; const on = !!(document.fullscreenElement || document.webkitFullscreenElement); b.lastChild.textContent = on ? ' Exit full screen' : ' Full screen'; }); document.addEventListener('fullscreenchange', sync); setTimeout(sync, 800); setTimeout(sync, 3000); })();
   try { window.matchMedia('(display-mode: standalone)').addEventListener('change', mark); } catch (_) {}
 
   /* ---- Small public API (used from Settings / console for support) ---- */
@@ -158,6 +159,16 @@
     isInstalled: isStandalone,
     canInstall: () => !!deferredPrompt || (isIOS() && !isStandalone()),
     install,
+    /* Full screen (v12.7.1): browser tab or installed app. Toggles; hidden where the browser cannot do it (iPhone Safari). */
+    fullscreen() {
+      try {
+        const d = document, el = d.documentElement;
+        if (d.fullscreenElement || d.webkitFullscreenElement) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); return; }
+        const rq = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (!rq) { Core.toast('Full screen is not available in this browser — use "Add to Home screen" / Install'); return; }
+        const r = rq.call(el, { navigationUI: 'hide' }); if (r && r.catch) r.catch(() => Core.toast('Full screen was blocked by the browser'));
+      } catch (_) {}
+    },
     persisted: async () => { try { return !!(navigator.storage && await navigator.storage.persisted()); } catch (_) { return false; } },
     estimate: async () => { try { return navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null; } catch (_) { return null; } },
     checkUpdate: async () => { try { if (REG) { await REG.update(); return true; } } catch (_) {} return false; },

@@ -168,7 +168,7 @@
     set until(v) { try { localStorage.setItem('esypos_lk_u', String(v)); } catch (_) {} },
     has() { return !!DB.settings.pinHash; },
     init(start) { if (this.has()) this.show(start); else start(); },
-    lockNow() { if (!this.has()) { toast('Set PIN in Settings first'); return; } this.show(() => {}); },
+    lockNow() { if (!this.has()) { toast('Set a PIN first — then the app can be locked'); this.setup(); return; } if (window.Modal) Modal.closeAll(); if (window.App) App.closeDrawers(); this.show(() => {}); },
     onHide() { this.hiddenAt = Date.now(); },
     autoMs() { const v = parseInt(DB.settings.autoLockMin, 10); return v === 0 ? 1200 : Math.max(3, v || 3) * 60000; },   // 0 = "as soon as I leave the app" (a 1 s blink such as a permission pop-up does not count)
     onResume() { if (this.has() && !this.el && this.hiddenAt && Date.now() - this.hiddenAt > this.autoMs()) this.show(() => {}); },
@@ -233,10 +233,10 @@
     },
     setup() {
       const has = this.has();
-      const m = Modal.open({ title: has ? 'Change PIN' : 'Set PIN', body: `${has ? '<div class="field"><label class="label">Current PIN</label><input id="pn-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' : ''}
-        <div class="field"><label class="label">New PIN (4 digits)</label><input id="pn-new" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" ${has ? '' : 'autofocus'}></div>
-        <div class="field"><label class="label">Re-enter</label><input id="pn-new2" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>
-        ${window.Recovery ? Recovery.fieldsHTML('pin') : '<p class="xs muted">Forgot PIN? Reset needs cloud backup.</p>'}`, foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="pn-ok">Save</button>` });
+      const m = Modal.open({ title: has ? 'Change PIN' : 'Set PIN', body: `${window.Recovery ? Recovery.fieldsHTML('pin') : ''}
+        ${has ? '<div class="field mt3"><label class="label">Current PIN</label><input id="pn-old" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>' : ''}
+        <div class="field${has ? '' : ' mt3'}"><label class="label">New PIN (4 digits)</label><input id="pn-new" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>
+        <div class="field"><label class="label">Re-enter</label><input id="pn-new2" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>`, foot: `<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button><button class="btn btn-primary" id="pn-ok">Save</button>` });
       m.querySelector('#pn-ok').onclick = async () => {
         if (has) { const r = await Lock.check($('pn-old').value); if (r !== 'ok') { toast(r === 'wait' ? '⚠️ Too many wrong attempts — try again later' : '⚠️ Current PIN is wrong'); $('pn-old').value = ''; return; } }
         const a = $('pn-new').value, b = $('pn-new2').value; if (!/^\d{4}$/.test(a)) { toast('⚠️ Enter exactly 4 digits'); return; } if (Lock.isWeak(a)) { toast('⚠️ That PIN is too easy to guess — choose another'); return; } if (a !== b) { toast('⚠️ PINs do not match'); return; }
@@ -426,8 +426,8 @@
       ${sec('security', `<div class="card pad mb3" id="screen-lock-card"><div class="sec-title"><i class="fas fa-mobile-screen-button ptext"></i> 1. Home screen lock</div>
         <p class="muted sm mb3">${Lock.has() ? 'ON — this PIN is asked every time the app opens and after idle.' : 'OFF — turn on to ask a PIN every time the app opens.'}</p>
         <label class="switch"><span class="sm fw6"><i class="fas fa-lock ptext"></i> Home screen lock</span><input type="checkbox" ${Lock.has() ? 'checked' : ''} onchange="Lock.toggleUI(this)"></label>
-        ${Lock.has() ? '<div class="flex gap2"><button class="btn btn-ghost grow" onclick="Lock.setup()">Change PIN</button><button class="btn btn-primary grow" onclick="Guard.lockNow()"><i class="fas fa-lock"></i> Lock now</button></div>' + (window.Recovery ? Recovery.rowHTML('pin') : '') : ''}
-        <label class="switch mt3"><span class="sm fw6"><i class="fas fa-shuffle ptext"></i> Scramble keypad digits</span><input type="checkbox" ${DB.settings.keypadShuffle ? 'checked' : ''} onchange="Keypad.setScramble(this.checked)"></label>
+        ${Lock.has() ? '<div class="flex gap2"><button class="btn btn-ghost grow" onclick="Lock.setup()">Change PIN</button><button class="btn btn-primary grow" onclick="Lock.lockNow()"><i class="fas fa-lock"></i> Lock app now</button></div>' + (window.Recovery ? Recovery.rowHTML('pin') : '') : ''}
+        <label class="switch mt3"><span class="sm fw6"><i class="fas fa-rotate ptext"></i> Scramble keypad digits</span><input type="checkbox" ${DB.settings.keypadShuffle ? 'checked' : ''} onchange="Keypad.setScramble(this.checked)"></label>
         <p class="xs muted mt2">PINs are always typed on the secure on-screen keypad, never on the phone keyboard. Scrambling moves the digits every time so nobody can copy the pattern of your taps.</p></div>`)}
       ${sec('printers', `${window.LP ? LP.cardHTML() : ''}
       <div class="card pad mb3"><div class="sec-title"><i class="fab fa-bluetooth-b ptext"></i> Bluetooth printer</div><div class="mb3" id="bt-status"></div>
@@ -444,7 +444,7 @@
         <div class="sys-row"><span class="sys-dot" id="sy-d1"></span><div class="sys-k">Works offline<small id="sy-s1">Checking…</small></div></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d2"></span><div class="sys-k">Installed as an app<small id="sy-s2">Checking…</small></div><button type="button" class="btn btn-primary hidden" id="sy-inst" onclick="PWA.install()">Install</button></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d3"></span><div class="sys-k">Data protected from cleanup<small id="sy-s3">Checking…</small></div></div>
-        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.0</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
+        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.1</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
         <div class="sys-row"><div class="sys-k">Storage used<small id="sy-s4">—</small></div></div>
         <div class="sys-row"><div class="sys-k">Repair offline files<small>Re-downloads the app files if something looks broken. Your shop data is not touched.</small></div><button type="button" class="btn btn-ghost" onclick="PWA.reset()">Repair</button></div></div>`)}
       ${sec('about', `<div class="card pad mb3">

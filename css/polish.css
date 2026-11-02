@@ -156,7 +156,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pk-key:active{background:var(--psoft,var(--hover));transform:scale(.96)}
 .pk-key:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .pk-key.pk-fn{font-size:14px;font-weight:600;color:var(--muted);background:transparent}
-.pk-key.pk-fn i{font-size:18px}
+.pk-key.pk-fn{font-size:20px}
 @media(max-height:620px){.pk-key{height:44px;font-size:19px}.pk{margin-top:10px;padding:8px}}
 @media(prefers-reduced-motion:reduce){.pk-key{transition:none}}
 .lock .lk-msg{min-height:20px;margin:-8px 0 14px;font-size:13px;font-weight:600;color:#fecaca;text-align:center}

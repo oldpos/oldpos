@@ -2,6 +2,15 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.7.1 — Page-by-page Admin lock · separate Home lock · full-screen PIN dialogs · full-screen PWA · fixes
+- **Admin lock is per page.** A locked page asks the Admin PIN every time you open it and locks again the moment you leave it (no time window). Staying on the page does not ask again; it also re-locks after the idle time you choose.
+- **Home-screen lock and Admin lock are separate.** Menu button is now *Lock app* (home PIN only; with no PIN set it opens *Set PIN* instead of doing nothing). The header 🔒 icon was removed. Security has its own *Lock admin sections now* button.
+- **Dashboard:** the *Reports* tile shows no money, only an *Open* link to Reports. *This month* and *Customer due* still follow the Admin lock.
+- **PIN dialogs fill the phone screen** and now show the recovery question first, then the PIN fields right above the keypad, so the dots never scroll out of sight.
+- **Full screen:** manifest asks for `fullscreen` (falls back to standalone), plus a *Full screen* button in the menu for browser tabs. Re-install the app once to pick up the new manifest.
+- **Fixed missing icons:** keypad backspace key (⌫) was blank; Scramble, Dashboard-tile and device icons were not in the icon font.
+- Cache `v12.7.1`; all screenshots re-taken.
+
 ## v12.7.0 — Stronger lock · Forgot-PIN question · Lock now · slim dashboard tiles
 - **Forgot PIN with a secret question.** Setting a Home PIN or Admin PIN now includes a recovery question + answer (answer stored only as a salted PBKDF2 hash). *Forgot PIN?* shows the question; the right answer lets you set a new PIN. 5 wrong answers lock it (1/5/15/30/60 min) and are logged. Existing PINs can add one in Settings → Security. New file `js/services/recovery.js`.
 - **Lock again at once.** New 🔒 button in the header (phone + desktop) and a *Lock now* button in Security. It re-locks everything the Admin PIN opened and shows the home lock. Sections also re-lock by themselves after N minutes without a touch. New *Home screen auto-lock: As soon as I leave the app* option.

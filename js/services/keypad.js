@@ -45,7 +45,7 @@
     const d = shuffled(), g = p.querySelector('.pk-grid');
     const key = (v, label, cls, aria) => '<button type="button" class="pk-key ' + (cls || '') + '" data-k="' + v + '"' + (aria ? ' aria-label="' + aria + '"' : '') + '>' + label + '</button>';
     g.innerHTML = d.slice(0, 9).map(n => key(n, n)).join('') +
-      key('clear', 'Clear', 'pk-fn', 'Clear') + key(d[9], d[9]) + key('back', '<i class="fas fa-delete-left" aria-hidden="true"></i>', 'pk-fn', 'Backspace');
+      key('clear', 'Clear', 'pk-fn', 'Clear') + key(d[9], d[9]) + key('back', '\u232B', 'pk-fn', 'Backspace');
   }
 
   function activate(inp) {

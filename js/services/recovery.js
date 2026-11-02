@@ -154,7 +154,7 @@
     if (!L || !L.has()) { toast('Set a ' + k.name + ' first'); return; }
     const m = Modal.open({
       title: (has(kind) ? 'Change' : 'Set') + ' recovery question',
-      body: '<div class="field"><label class="label">Current ' + k.name + '</label><input id="re-pin" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input" autofocus></div>' + fieldsHTML(kind),
+      body: fieldsHTML(kind) + '<div class="field mt3"><label class="label">Current ' + k.name + '</label><input id="re-pin" type="password" data-pin="1" readonly inputmode="none" maxlength="4" class="input"></div>',
       foot: '<button class="btn" onclick="Modal.closeFrom(this)">Cancel</button>' + (has(kind) ? '<button class="btn btn-danger-soft" id="re-del">Remove</button>' : '') + '<button class="btn btn-primary" id="re-ok">Save</button>'
     });
     const verify = async () => {

@@ -12,10 +12,10 @@
     const main = document.querySelector('.main'); if (!main || $('desk-bar')) return;
     const b = document.createElement('div'); b.id = 'desk-bar'; b.className = 'desk-bar';
     b.innerHTML = `<div class="db-title"><b id="db-page">Dashboard</b></div>
-      <div class="db-actions"><button type="button" class="tb-theme db-theme db-lock js-lockbtn" hidden onclick="Guard.lockNow()" title="Lock now" aria-label="Lock now"><i class="fas fa-lock"></i></button><button type="button" class="tb-theme db-theme" onclick="Theme.toggle()" title="Dark / Light mode" aria-label="Switch dark or light mode"><i class="theme-ico fas fa-moon"></i></button><button type="button" class="sync-chip js-chip" onclick="Cloud.chip()" title="Back up to Google Drive"><i class="fas fa-cloud-arrow-up"></i><span class="lbl">Backup</span></button><span class="db-tg"></span>
+      <div class="db-actions"><button type="button" class="tb-theme db-theme" onclick="Theme.toggle()" title="Dark / Light mode" aria-label="Switch dark or light mode"><i class="theme-ico fas fa-moon"></i></button><button type="button" class="sync-chip js-chip" onclick="Cloud.chip()" title="Back up to Google Drive"><i class="fas fa-cloud-arrow-up"></i><span class="lbl">Backup</span></button><span class="db-tg"></span>
       <button type="button" id="db-sell" class="btn btn-primary btn-sm" onclick="App.go('pos')"><i class="fas fa-cash-register"></i> New sale</button></div>`;
     main.insertBefore(b, main.firstChild);
-    title(); if (window.Guard && Guard.syncBtns) Guard.syncBtns(); if (window.Community && Community.fill) Community.fill(); if (window.Theme && Theme.apply) Theme.apply();
+    title(); if (window.Community && Community.fill) Community.fill(); if (window.Theme && Theme.apply) Theme.apply();
   }
 
   function title() {
@@ -45,7 +45,7 @@
   document.addEventListener('keydown', e => {
     const tag = (e.target && e.target.tagName) || '';
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'l' && !/INPUT|TEXTAREA|SELECT/.test(tag)) {
-      if (window.Guard && Guard.lockNow) { e.preventDefault(); Guard.lockNow(); }
+      if (window.Lock && Lock.has && Lock.has()) { e.preventDefault(); Lock.lockNow(); }
     } else if (e.altKey && !e.ctrlKey && !e.metaKey && MAP[e.key] && window.App && App.Views && App.Views[MAP[e.key]]) {
       e.preventDefault(); App.go(MAP[e.key]);
     }

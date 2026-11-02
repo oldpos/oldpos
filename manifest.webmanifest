@@ -89,10 +89,14 @@
     }
   ],
   "display_override": [
+    "fullscreen",
     "standalone",
     "minimal-ui",
     "browser"
   ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "prefer_related_applications": false,
   "shortcuts": [
     {
