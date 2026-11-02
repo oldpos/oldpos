@@ -18,7 +18,11 @@
   const del = k => { try { LS.removeItem(k); } catch (_) {} };
   const isOn = () => get(KEY.on) === '1';
   const clientId = () => ((window.PROPOS_CONFIG && window.PROPOS_CONFIG.googleClientId) || get(KEY.client) || '').trim();
-  const hasLocal = () => !!(DB.products.length || DB.sales.length || DB.customers.length || DB.suppliers.length || DB.expenses.length);
+  // v12.7.2: shop name / phone / address / PIN / tax settings count as data too. Before, a shop that had only filled in Settings looked "empty",
+  // so nothing was backed up and a later sign-in replaced the settings with blanks.
+  const SET_KEYS = ['shopName', 'shopAddress', 'shopPhone', 'taxId', 'invPrefix', 'footer', 'defaultTax', 'currency', 'businessType', 'paper', 'pinHash', 'adminHash'];
+  const settingsFilled = () => { const s = DB.settings || {}, D = C.DEFAULTS; return SET_KEYS.some(k => String(s[k] == null ? '' : s[k]) !== String(D[k] == null ? '' : D[k])) || Array.isArray(s.lockedViews); };
+  const hasLocal = () => !!(DB.products.length || DB.sales.length || DB.customers.length || DB.suppliers.length || DB.expenses.length || settingsFilled());
   const mk = (code, status) => { const e = new Error(code); e.code = code; e.status = status; return e; };
   const S = { detail: '', needConsent: false, status: 'off', busy: false, applying: false, timer: null, tok: null, exp: 0, authP: null, lastTry: 0, seq: 0, gis: null };
   // The Google access token lives ~1 hour. Keep it in localStorage so closing and reopening the app within that hour needs no new sign-in.
@@ -574,6 +578,12 @@
     const ls = DB.settings, rs = R.settings || {}, lchg = !!(B && setHash(ls) !== B.s);
     const st = Object.assign({}, C.DEFAULTS, lchg ? Object.assign({}, rs, ls) : rs);
     if (lchg) local = true;
+    else if (!B) {                                   // no common base yet (new sign-in): keep what was typed here wherever the cloud copy still has the default
+      SET_KEYS.concat(['lockedViews', 'sectionLockMin', 'autoLockMin', 'keypadShuffle', 'pinSalt', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH']).forEach(k => {
+        const dv = C.DEFAULTS[k], isDef = v => v == null || v === '' || String(v) === String(dv == null ? '' : dv) || (Array.isArray(v) && !v.length);
+        if (!isDef(ls[k]) && isDef(rs[k])) { st[k] = ls[k]; local = true; }
+      });
+    }
     let mx = 0; out.sales.forEach(x => { mx = Math.max(mx, parseInt(x.no, 10) || 0); });
     st.nextInvoice = Math.max(parseInt(ls.nextInvoice, 10) || 1, parseInt(rs.nextInvoice, 10) || 1, mx + 1);
     st.nextBarcode = Math.max(parseInt(ls.nextBarcode, 10) || 1, parseInt(rs.nextBarcode, 10) || 1);
@@ -681,7 +691,7 @@
     // Renew the token a few minutes before it expires so sync never stops while the shop is open.
     setInterval(() => { if (isOn() && get(KEY.dirty) === '1' && document.visibilityState === 'visible' && !S.busy && S.tok && S.exp - Date.now() < 8 * 60 * 1000 && S.exp - Date.now() > 0) { resume(true); } }, 60 * 1000);
   }
-  window.Cloud = { replaceNow, autoToggle(on) { set('esypos_g_auto', on ? '1' : '0'); toast(on ? 'Live sync on' : 'Live sync off'); }, init, chip, markDirty, signIn, signOut, resetPin, syncNow, pull, snapshots, panel, setup, renderUI, isOn };
+  window.Cloud = { _t: { hasLocal, mergeData }, replaceNow, autoToggle(on) { set('esypos_g_auto', on ? '1' : '0'); toast(on ? 'Live sync on' : 'Live sync off'); }, init, chip, markDirty, signIn, signOut, resetPin, syncNow, pull, snapshots, panel, setup, renderUI, isOn };
   if (!isOn()) showGate('new');
   window.addEventListener('storage', e => { if (e.key === KEY.on && e.newValue !== '1') location.reload(); });
 })();

@@ -444,7 +444,7 @@
         <div class="sys-row"><span class="sys-dot" id="sy-d1"></span><div class="sys-k">Works offline<small id="sy-s1">Checking…</small></div></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d2"></span><div class="sys-k">Installed as an app<small id="sy-s2">Checking…</small></div><button type="button" class="btn btn-primary hidden" id="sy-inst" onclick="PWA.install()">Install</button></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d3"></span><div class="sys-k">Data protected from cleanup<small id="sy-s3">Checking…</small></div></div>
-        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.1</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
+        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.2</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
         <div class="sys-row"><div class="sys-k">Storage used<small id="sy-s4">—</small></div></div>
         <div class="sys-row"><div class="sys-k">Repair offline files<small>Re-downloads the app files if something looks broken. Your shop data is not touched.</small></div><button type="button" class="btn btn-ghost" onclick="PWA.reset()">Repair</button></div></div>`)}
       ${sec('about', `<div class="card pad mb3">
@@ -454,16 +454,18 @@
       this.open(this.sec === undefined ? (window.matchMedia('(min-width:1024px)').matches ? 'shop' : '') : this.sec, true);
       Theme.apply(); if (window.Design) Design.apply(); Printer.ui(); if (window.Cloud) Cloud.renderUI(); this.sysStatus();
     },
-    save() {
+    save(silent) {
       const s = DB.settings; s.shopName = $('st-name').value.trim() || 'My Shop'; s.shopAddress = $('st-addr').value.trim(); s.shopPhone = $('st-phone').value.trim();
       s.defaultTax = Math.max(0, num($('st-tax').value)); s.footer = $('st-foot').value.trim(); s.taxId = ($('st-taxid') ? $('st-taxid').value.trim() : (s.taxId || '')).slice(0, 40); s.invPrefix = $('st-pre').value.trim(); s.currency = ($('st-cur').value || '').trim().slice(0, 4) || C.DEFAULTS.currency; s.paper = $('st-paper').value; const lw = parseFloat($('st-low').value); s.lowStockDefault = isFinite(lw) && lw >= 0 ? lw : 5;
       s.businessType = ($('st-biz') && $('st-biz').value) || 'retail';
       s.barcodePrefix = (($('st-bcpre') && $('st-bcpre').value) || 'ESY').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 6) || 'ESY';
       s.barcodeFormat = ($('st-bcfmt') && $('st-bcfmt').value) || 'code128';
       const bn = parseInt($('st-bcnext') && $('st-bcnext').value, 10); if (isFinite(bn) && bn >= 1) s.nextBarcode = bn;
-      C.save('settings'); if (!DB.cart.length) POS.taxInit(); POS.renderCart(); toast('Settings saved ✓');   // a bill in progress keeps the tax the cashier chose
+      C.save('settings'); if (!DB.cart.length) POS.taxInit(); POS.renderCart(); if (silent !== true) toast('Settings saved ✓');   // a bill in progress keeps the tax the cashier chose
     }
   };
   window.Settings = App.Views.settings;
+  /* v12.7.2: shop details are saved the moment a field is changed (before, they were lost if you left the page without pressing Save) */
+  document.addEventListener('change', e => { const t = e.target; if (t && t.id && /^st-/.test(t.id) && window.App && App.view === 'settings' && document.getElementById('st-name')) { try { Settings.save(true); } catch (err) { console.warn('[Settings] autosave', err); } } });
   window.DB_ = { btMode(v) { DB.settings.btMode = v; C.save('settings'); } };
 })();

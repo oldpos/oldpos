@@ -2,7 +2,7 @@
    offline/online badge, self-repair of the offline cache, persistent storage, and a small window.PWA API. */
 (function () {
   'use strict';
-  const CACHE_VERSION = 'v12.7.1';   // MUST equal sw.js — if they differ, clearOldCaches() deletes the live offline cache
+  const CACHE_VERSION = 'v12.7.2';   // MUST equal sw.js — if they differ, clearOldCaches() deletes the live offline cache
   const LS = {
     get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
     set(k, v) { try { localStorage.setItem(k, String(v)); } catch (_) {} }
@@ -159,7 +159,7 @@
     isInstalled: isStandalone,
     canInstall: () => !!deferredPrompt || (isIOS() && !isStandalone()),
     install,
-    /* Full screen (v12.7.1): browser tab or installed app. Toggles; hidden where the browser cannot do it (iPhone Safari). */
+    /* Full screen (v12.7.2): browser tab or installed app. Toggles; hidden where the browser cannot do it (iPhone Safari). */
     fullscreen() {
       try {
         const d = document, el = d.documentElement;

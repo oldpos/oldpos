@@ -2,6 +2,13 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.7.2 — Shop details & lock now really saved · same user count everywhere · Reports tile
+- **Fixed: shop name, phone, address, PIN and other Settings were not kept** after sign-out / sign-in or an update. Cause: a shop that had only Settings filled in (no product or sale yet) counted as "empty", so it was never backed up and the next sign-in replaced it with blanks; the sign-in merge also let the cloud's blank values win when this device had no sync base. Settings now count as data, are merged field by field (typed values survive, cloud values win when both exist), and shop fields **save the moment you change them** (no need to press Save).
+- **Total users is the same on every phone.** The app no longer keeps the highest number it ever saw (that left some phones on an old, higher count); it shows the server number, with a cache-buster. `tools/user-counter.gs`: result cache 30 s → 5 s (re-deploy the script once).
+- **Dashboard:** the *Reports* tile now looks like *This month* / *Customer due*: label with a 🔒 •••• mark underneath (tap → Admin PIN → Reports). No "Open" text.
+- **Lighter:** screenshots compressed (about 70% smaller, faster first load), the lock watcher sleeps when nothing is unlocked.
+- Cache `v12.7.2`.
+
 ## v12.7.1 — Page-by-page Admin lock · separate Home lock · full-screen PIN dialogs · full-screen PWA · fixes
 - **Admin lock is per page.** A locked page asks the Admin PIN every time you open it and locks again the moment you leave it (no time window). Staying on the page does not ask again; it also re-locks after the idle time you choose.
 - **Home-screen lock and Admin lock are separate.** Menu button is now *Lock app* (home PIN only; with no PIN set it opens *Set PIN* instead of doing nothing). The header 🔒 icon was removed. Security has its own *Lock admin sections now* button.

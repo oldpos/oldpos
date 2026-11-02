@@ -121,6 +121,7 @@
   let wasOpen = false;
   setInterval(() => {
     try {
+      if (!wasOpen && !openView && Date.now() >= profitOpen) return;      // nothing unlocked: nothing to watch (saves battery)
       const o = isOpen();
       if (wasOpen && !o) { if (window.Modal && Modal.stack.length) { openUntil = profitOpen = Date.now() + 15000; return; } relock(); }   // inactivity ended it (a dialog in use gets a little longer)
       wasOpen = isOpen();
@@ -302,13 +303,12 @@
     const done = !id || LS.get(K_ID) === sig;
     let q = 'a=count';
     if (!done) q = 'a=hit&id=' + encodeURIComponent(id) + Object.keys(pr).map(k => '&' + k + '=' + encodeURIComponent(pr[k])).join('');
-    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + q, { signal, cache: 'no-store' });
+    const r = await fetch(a + (a.indexOf('?') < 0 ? '?' : '&') + q + '&t=' + Date.now(), { signal, cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
     if (!j || !j.ok) return;
     if (!done) LS.set(K_ID, sig);                                         // remembered only after the server confirmed
     if (typeof j.total === 'number') {
-      const old = parseInt(LS.get(K_TOTAL) || '0', 10) || 0;
-      LS.set(K_TOTAL, String(Math.max(old, j.total)));                   // never goes down on screen
+      LS.set(K_TOTAL, String(j.total));                                  // v12.7.2: the server number is the truth, so every phone shows the same total (the old "never goes down" cache kept stale highs on some phones)
     }
   }
   let busy = false, lastAt = 0;

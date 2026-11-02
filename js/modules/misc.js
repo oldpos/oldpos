@@ -326,7 +326,7 @@
       <div class="sd-tiles">
         ${tile('This month', money(mo.netSales), "App.go('history')", '', mo.count + ' bill' + (mo.count === 1 ? '' : 's') + ' \u00b7 Sales history')}
         ${tile('Customer due', money(C.totalCustomerDue()), "People.cf='due';App.go('customers')", C.totalCustomerDue() > 0 ? 'warn' : '', dueN + ' customer' + (dueN === 1 ? '' : 's') + ' with due')}
-        <button type="button" class="sd-tile sd-tile-go" title="Open reports" onclick="App.go('reports')"><span class="sd-tk">Reports</span><b class="v">Open <i class="fas fa-chevron-right"></i></b></button>
+        <button type="button" class="sd-tile sd-tile-go" title="Open reports" onclick="App.go('reports')"><span class="sd-tk">Reports</span><b class="v">${(window.Guard && Guard.needs && Guard.needs('reports')) ? '<span class="lock-mask"><i class="fas fa-lock"></i><span class="lm-d">\u2022\u2022\u2022\u2022</span></span>' : '<span class="lock-mask"><i class="fas fa-chart-column"></i><span class="lm-d" style="letter-spacing:0">View</span></span>'}</b></button>
       </div>
       ${guide}
       <section class="sd-card"><div class="sd-h"><h3>Last 7 days</h3><span class="sd-mut">${money(r2(days.reduce((a, d) => a + d.v, 0)))}</span></div>

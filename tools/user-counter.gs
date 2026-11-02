@@ -28,7 +28,7 @@ function total_() {
   const c = CacheService.getScriptCache(), v = c.get('t3');
   if (v !== null) return Number(v);
   const n = Math.max(0, sheet_().getLastRow() - 1);
-  c.put('t3', String(n), 30);
+  c.put('t3', String(n), 5);   // short cache: every phone sees (almost) the same number
   return n;
 }
 /* text from the app: trimmed, cut short, and made safe so a cell can never be run as a formula */
