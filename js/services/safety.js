@@ -157,7 +157,7 @@
   function snapshotData() {
     const C = window.Core; if (!C || !C.DB) return null;
     const out = { app: 'Old POS', version: 4, exportDate: new Date().toISOString() };
-    Object.keys(C.DB).forEach(k => { if (k !== 'cart') out[k] = C.DB[k]; });
+    Object.keys(C.DB).forEach(k => { if (k !== 'cart') out[k] = k === 'settings' ? C.stripSecrets(C.DB[k]) : C.DB[k]; });   // v12.7.3: local copies never hold PIN hashes
     return out;
   }
   function quickHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16) + ':' + s.length; }
@@ -174,6 +174,12 @@
       for (const c of all.slice(KEEP)) await IDB.delCopy(c.t);
       return true;
     } catch (_) { return false; }
+  }
+  /* v12.7.3: Log out must really clear this device — the rolling copies (all shop data) used to survive it */
+  async function wipeCopies() {
+    try { const all = await IDB.copies(); for (const c of all) await IDB.delCopy(c.t); } catch (_) {}
+    try { await IDB.del('sess'); } catch (_) {}
+    LS.del('oldpos_copy_h'); LS.del('oldpos_copy_t'); lastHash = '';
   }
   async function listCopies() { return (await IDB.copies()).sort((a, b) => b.t - a.t).map(c => ({ t: c.t, n: c.n, bytes: (c.data || '').length })); }
   async function restoreCopy(t) {
@@ -209,5 +215,5 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(start, 0)); else setTimeout(start, 0);
 
-  window.Safety = { deviceId, persist, saveCopy, listCopies, restoreCopy, downloadCopy, endSession, startSession, mirror: mirrorOut, IDB, LS, CK };
+  window.Safety = { wipeCopies, deviceId, persist, saveCopy, listCopies, restoreCopy, downloadCopy, endSession, startSession, mirror: mirrorOut, IDB, LS, CK };
 })();

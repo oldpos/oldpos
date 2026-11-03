@@ -1,3 +1,28 @@
+# Old POS v12.7.3 — Audit (backup of shop details / PIN, logout safety)
+
+## Root cause found and reproduced (mock Google Drive, headless Chromium)
+Google's access token lives 1 hour. After it ran out, shop details / PIN edits stayed "pending" on the phone only; **Log out → "Sign out anyway"** wiped the device while Drive still held the old values, so the next sign-in showed blank settings. (Test: edit with expired token → log out → sign in = old value. After fix = edited value.)
+
+## Fixed
+| # | Area | Problem | Fix |
+|---|------|---------|-----|
+| 1 | Backup | Edits made after token expiry never reached Drive | `softRenew()` renews the token while the tap is fresh; Save / Set PIN call `Cloud.reconnect()` |
+| 2 | Backup | Unsynced settings lost at Log out | "Rescue" of changed keys, re-applied on next sign-in with the same account (14 days, then discarded); backup file saved first |
+| 3 | Backup | Whole-object settings merge: stale values of one phone could overwrite another phone's edit | Key-by-key 3-way merge against last agreed copy (`esypos_g_setbase`) |
+| 4 | Backup | Upload snapshot hashed live objects (edits during upload counted as synced) | Snapshot taken before upload; settings copied |
+| 5 | Security | Log out left all shop data in IndexedDB safety copies | `Safety.wipeCopies()` on Log out; copies no longer hold PIN hashes |
+| 6 | Security | Pending saves could write data back after Log out wipe | `Core.halt()` |
+| 7 | Security | CSP allowed images from any https site | only `*.googleusercontent.com` (profile photo) |
+| 8 | Design | Broken screenshot link (`desktop-11-users.png`) on index JSON-LD, features.html, bn.html | points to `desktop-10-sales-counter.png` |
+
+## Tested
+Settings sync with valid and expired token; logout/login; two devices editing different fields; copies wiped on logout; 10 views x 2 viewports (360 / 1280 px) no overflow, no JS errors; one POS sale (stock -1, synced to Drive).
+
+## Not verified / still open
+Real Google sign-in and Drive (mocked in tests); real phones, printers, camera. Needs a larger refactor: CSP still has 'unsafe-inline' (inline onclick handlers); the 1-hour Google token is kept in localStorage; a 4-digit PIN is client-side only and its hash is in the Drive backup (as requested, so it can be restored) — anyone with access to the Drive file could brute-force it offline. The user counter sends the Google name, e-mail and device description to the owner's Google Sheet (disclosed in the Privacy Policy).
+
+---
+
 # Old POS v12.1.3 — Audit Report (pass 1: v12.1.2, pass 2: v12.1.3)
 
 ## Fixed

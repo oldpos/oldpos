@@ -28,8 +28,10 @@
       return fallback;
     }
   }
+  let halted = false;                         // v12.7.3: after Log out / wipe nothing may be written back to this device
   let rev = 0;                                   // bumps on every data change (cheap cache key for lists)
   function writeKey(key, value) {
+    if (halted) return false;
     try {
       root.localStorage.setItem(key, JSON.stringify(value));
       return true;
@@ -49,6 +51,7 @@
   const pending = new Set(); let saveTimer = null;
   function flush() {
     clearTimeout(saveTimer); saveTimer = null;
+    if (halted) { pending.clear(); return; }
     const names = Array.from(pending); pending.clear();
     let synced = false;
     names.forEach(name => {
@@ -58,6 +61,7 @@
     if (synced) { try { root.localStorage.setItem('esypos_dirty', '1'); } catch (_) {} if (root.Cloud) root.Cloud.markDirty(); }
   }
   function save(name) {
+    if (halted) return true;
     rev++;
     pending.add(name);
     if (name !== 'cart') { try { root.localStorage.setItem('esypos_dirty', '1'); } catch (_) {} }   // crash-safe marker, tiny write
@@ -330,7 +334,8 @@
   const SECRET_KEYS = ['pinHash', 'pinSalt', 'adminHash', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'];
   const stripSecrets = s => { const o = Object.assign({}, s || {}); SECRET_KEYS.forEach(k => { o[k] = ''; }); return o; };
   const keepSecrets = () => { const o = {}; SECRET_KEYS.forEach(k => { o[k] = (DB.settings && DB.settings[k]) || ''; }); return o; };
-  const api = { K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
+  function halt() { halted = true; pending.clear(); clearTimeout(saveTimer); saveTimer = null; }
+  const api = { halt, K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
     fmtDate, fmtTime, fmtDT, invLabel, toast, unitLabel, findProduct, findCustomer, findSupplier, findSale, customerBalance, supplierBalance, totalCustomerDue,
     totalSupplierDue, returnedQty, returnedAmount, customerLedger, supplierLedger, buildReport, stockValue, toCSV, parseCSV, download, inRange };
   root.Core = api;

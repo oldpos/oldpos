@@ -244,7 +244,7 @@
         const salt = C.genId(); DB.settings.pinSalt = salt; DB.settings.pinHash = await hashPin(a, salt);
         if (rec) await Recovery.commit('pin', rec);
         ['esypos_lk_f', 'esypos_lk_u', 'esypos_lk_l'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-        C.save('settings'); Modal.close(m); toast('PIN set ✓'); App.refresh();
+        C.save('settings'); Modal.close(m); toast('PIN set ✓'); App.refresh(); if (window.Cloud && Cloud.reconnect) setTimeout(() => Cloud.reconnect(), 450);
       };
     },
     remove() {
@@ -444,7 +444,7 @@
         <div class="sys-row"><span class="sys-dot" id="sy-d1"></span><div class="sys-k">Works offline<small id="sy-s1">Checking…</small></div></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d2"></span><div class="sys-k">Installed as an app<small id="sy-s2">Checking…</small></div><button type="button" class="btn btn-primary hidden" id="sy-inst" onclick="PWA.install()">Install</button></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d3"></span><div class="sys-k">Data protected from cleanup<small id="sy-s3">Checking…</small></div></div>
-        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.2</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
+        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.7.3</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
         <div class="sys-row"><div class="sys-k">Storage used<small id="sy-s4">—</small></div></div>
         <div class="sys-row"><div class="sys-k">Repair offline files<small>Re-downloads the app files if something looks broken. Your shop data is not touched.</small></div><button type="button" class="btn btn-ghost" onclick="PWA.reset()">Repair</button></div></div>`)}
       ${sec('about', `<div class="card pad mb3">
@@ -461,7 +461,7 @@
       s.barcodePrefix = (($('st-bcpre') && $('st-bcpre').value) || 'ESY').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 6) || 'ESY';
       s.barcodeFormat = ($('st-bcfmt') && $('st-bcfmt').value) || 'code128';
       const bn = parseInt($('st-bcnext') && $('st-bcnext').value, 10); if (isFinite(bn) && bn >= 1) s.nextBarcode = bn;
-      C.save('settings'); if (!DB.cart.length) POS.taxInit(); POS.renderCart(); if (silent !== true) toast('Settings saved ✓');   // a bill in progress keeps the tax the cashier chose
+      C.save('settings'); if (!DB.cart.length) POS.taxInit(); POS.renderCart(); if (silent !== true) { toast('Settings saved ✓'); if (window.Cloud && Cloud.reconnect) setTimeout(() => Cloud.reconnect(), 450); }   // a bill in progress keeps the tax the cashier chose
     }
   };
   window.Settings = App.Views.settings;

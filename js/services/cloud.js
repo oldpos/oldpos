@@ -23,6 +23,29 @@
   const SET_KEYS = ['shopName', 'shopAddress', 'shopPhone', 'taxId', 'invPrefix', 'footer', 'defaultTax', 'currency', 'businessType', 'paper', 'pinHash', 'adminHash'];
   const settingsFilled = () => { const s = DB.settings || {}, D = C.DEFAULTS; return SET_KEYS.some(k => String(s[k] == null ? '' : s[k]) !== String(D[k] == null ? '' : D[k])) || Array.isArray(s.lockedViews); };
   const hasLocal = () => !!(DB.products.length || DB.sales.length || DB.customers.length || DB.suppliers.length || DB.expenses.length || settingsFilled());
+  // v12.7.3: settings are merged key by key against the copy both sides last agreed on (a stale blank can never overwrite a typed value),
+  // and anything typed but not yet synced when the owner logs out is kept as a small "rescue" and re-applied on the next sign-in.
+  const SB = 'esypos_g_setbase', RESCUE = 'oldpos_rescue', NOSYNC = { nextInvoice: 1, nextBarcode: 1 };
+  const sameVal = (a, b) => JSON.stringify(a == null ? '' : a) === JSON.stringify(b == null ? '' : b);
+  const loadSetBase = () => { try { return JSON.parse(LS.getItem(SB) || 'null'); } catch (_) { return null; } };
+  const saveSetBase = st => { try { LS.setItem(SB, JSON.stringify(Object.assign({}, st || {}))); } catch (_) {} };
+  function makeRescue(mode) {
+    try {
+      const sb = loadSetBase(); if (!sb && get(KEY.dirty) !== '1') return;
+      const b = Object.assign({}, C.DEFAULTS, sb || {}), chg = {};
+      Object.keys(DB.settings || {}).forEach(k => { if (!NOSYNC[k] && !sameVal(DB.settings[k], b[k])) chg[k] = DB.settings[k]; });
+      if (mode === 'pin') C.SECRET_KEYS.forEach(k => { delete chg[k]; });
+      if (Object.keys(chg).length) LS.setItem(RESCUE, JSON.stringify({ email: (get(KEY.email) || '').toLowerCase(), t: Date.now(), chg }));
+    } catch (_) {}
+  }
+  function rescueInto(settings) {                       // true when something typed before the last Log out was put back
+    let r = null; try { r = JSON.parse(LS.getItem(RESCUE) || 'null'); } catch (_) {}
+    if (!r) return false;
+    del(RESCUE);
+    if (!r.chg || r.email !== (get(KEY.email) || '').toLowerCase() || Date.now() - (+r.t || 0) > 14 * 86400000) return false;
+    Object.keys(r.chg).forEach(k => { settings[k] = r.chg[k]; });
+    return true;
+  }
   const mk = (code, status) => { const e = new Error(code); e.code = code; e.status = status; return e; };
   const S = { detail: '', needConsent: false, status: 'off', busy: false, applying: false, timer: null, tok: null, exp: 0, authP: null, lastTry: 0, seq: 0, gis: null };
   // The Google access token lives ~1 hour. Keep it in localStorage so closing and reopening the app within that hour needs no new sign-in.
@@ -123,7 +146,7 @@
   }
   function payload() {
     const out = { app: 'Old POS', version: 4, exportDate: new Date().toISOString(), device: (navigator.platform || '') };
-    Object.keys(K).forEach(k => { if (k !== 'cart') out[k] = k === 'settings' ? DB.settings : DB[k]; });
+    Object.keys(K).forEach(k => { if (k !== 'cart') out[k] = k === 'settings' ? Object.assign({}, DB.settings) : DB[k]; });   // a copy: edits made while the upload runs must not look "already synced"
     out.integrity = integrity(out);
     return out;
   }
@@ -145,8 +168,9 @@
       else if (k === 'cart') DB.cart = [];
       else DB[k] = Array.isArray(d[k]) ? d[k] : [];
     });
+    if (rescueInto(DB.settings)) pushAfter = true;
     if (get(KEY.pinReset) === '1') { DB.settings.pinHash = ''; DB.settings.pinSalt = ''; DB.settings.adminHash = ''; DB.settings.adminSalt = ''; ['pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'].forEach(k => { DB.settings[k] = ''; }); pushAfter = true; del(KEY.pinReset); }
-    C.migrate(); C.saveAll(); saveBase(snap(d));
+    C.migrate(); C.saveAll(); saveBase(snap(d)); saveSetBase(d.settings);
     set(KEY.rev, f.modifiedTime); set(KEY.fid, f.id); set(KEY.last, String(Date.now()));
     if (pushAfter) set(KEY.dirty, '1'); else del(KEY.dirty);
     del('esypos_dirty');
@@ -158,6 +182,14 @@
     set(KEY.dirty, '1'); S.seq++;
     if (S.status !== 'syncing' && S.status !== 'auth' && S.status !== 'offline') setStatus('pending'); else renderUI();
     clearTimeout(S.timer); S.timer = setTimeout(() => push(), 900);
+    softRenew();
+  }
+  // v12.7.3: the Google token only lasts an hour. If it ran out, renew it quietly right when the owner changes something (their tap is still "fresh"),
+  // so shop details / PIN no longer sit unsynced until Log out.
+  function softRenew() {
+    if (S.authP || validTok() || !clientId() || !navigator.onLine || Date.now() - (S.softT || 0) < 60000) return;
+    if (!(navigator.userActivation && navigator.userActivation.isActive)) return;
+    S.softT = Date.now(); S.lastTry = 0; resume(true);
   }
   async function push(force, manual) {
     if (!isOn() || S.busy || S.applying || !hasLocal()) return;
@@ -169,7 +201,7 @@
       if (cached) { try { f = await getMeta(cached); } catch (e) { if (e.status !== 404) throw e; } }
       if (!f) f = await findMain();
       if (f && !force && get(KEY.rev) !== f.modifiedTime) mergeApply(await download(f.id), f);   // another device saved first: merge, never overwrite
-      const pl = payload(), cnt = total(pl.integrity.n), last = parseInt(get('esypos_g_cnt') || '0', 10);
+      const pl = payload(), sn = snap(pl), cnt = total(pl.integrity.n), last = parseInt(get('esypos_g_cnt') || '0', 10);
       // Safety: an automatic backup never replaces a much bigger cloud copy with a nearly empty one (e.g. after a wipe or storage reset).
       if (!force && !manual && last >= 20 && cnt < last * 0.5) throw mk('shrink');
       if (f) await snapshotBefore(f);
@@ -177,7 +209,7 @@
       const res = await writeMain(f && !hidden ? f.id : null, JSON.stringify(pl));
       const back = await download(res.id);                          // read it back: only call it a backup if it matches
       if (!back || !back.integrity || back.integrity.h !== pl.integrity.h) throw mk('verify');
-      set('esypos_g_cnt', String(cnt)); saveBase(snap(pl));
+      set('esypos_g_cnt', String(cnt)); saveBase(sn); saveSetBase(pl.settings);
       set(KEY.fid, res.id); set(KEY.rev, res.modifiedTime); set(KEY.last, String(Date.now()));
       S.retries = 0;
       if (S.seq === seq) { del(KEY.dirty); del('esypos_dirty'); setStatus('ok'); }
@@ -201,6 +233,7 @@
   async function afterSignIn() {
     const f = await findMain();
     if (!f) {
+      if (rescueInto(DB.settings)) C.save('settings');
       if (hasLocal()) await push(true);
       else { setStatus('ok'); toast('✓ Google connected — auto backup when data changes'); }
       return;
@@ -236,9 +269,12 @@
   function finishSignOut(mode) {
     S.applying = true; clearTimeout(S.timer);
     try { if (S.tok && window.google && google.accounts) google.accounts.oauth2.revoke(S.tok, () => {}); } catch (_) {}
-    S.tok = null; S.exp = 0; wipeLocal(); try { window.Safety && Safety.endSession(); } catch (_) {}
+    makeRescue(mode);                                   // typed-but-unsynced shop details / PIN come back after the next sign-in
+    S.tok = null; S.exp = 0; try { C.halt(); } catch (_) {} wipeLocal(); try { window.Safety && Safety.endSession(); } catch (_) {}
     if (mode === 'pin') set(KEY.pinReset, '1');
-    toast(mode === 'pin' ? 'Signed out — sign in again to reset your PIN' : 'Signed out'); setTimeout(() => location.reload(), 350);
+    toast(mode === 'pin' ? 'Signed out — sign in again to reset your PIN' : 'Signed out');
+    const go = () => setTimeout(() => location.reload(), 350);
+    try { Promise.race([window.Safety && Safety.wipeCopies ? Safety.wipeCopies() : 0, new Promise(r => setTimeout(r, 1500))]).then(go, go); } catch (_) { go(); }
   }
   function signOut() {
     const dirty = get(KEY.dirty) === '1';
@@ -252,7 +288,7 @@
         try { await requestToken(true); await push(); } catch (_) {}
         if (get(KEY.dirty) === '1') {
           if (Modal.stack.length > before) return;   // a "which data to keep?" dialog opened — let the user answer it first
-          askConfirm('Sync did not finish. If you sign out now, the unsynced changes will be lost.', () => finishSignOut(), { title: 'Unsynced changes', yes: 'Sign out anyway', danger: true });
+          askConfirm('Sync did not finish. Your shop details and PIN stay saved and come back when you sign in again with this Google account on this device. Sales or products not yet synced would be lost, so a backup file is saved first.', () => { try { window.exportBackupFile && exportBackupFile(); } catch (_) {} setTimeout(() => finishSignOut(), 800); }, { title: 'Unsynced changes', yes: 'Save file & sign out', danger: true });
           return;
         }
       }
@@ -575,9 +611,12 @@
       L.forEach(l => { if (!rm.has(l.id) && !(Bk && (l.id in Bk))) { res.push(l); local = true; } });   // new on this device
       out[k] = res;
     });
-    const ls = DB.settings, rs = R.settings || {}, lchg = !!(B && setHash(ls) !== B.s);
-    const st = Object.assign({}, C.DEFAULTS, lchg ? Object.assign({}, rs, ls) : rs);
-    if (lchg) local = true;
+    const ls = DB.settings, rs = R.settings || {}, sb = loadSetBase();
+    const st = Object.assign({}, C.DEFAULTS, rs);
+    if (sb) {                                        // v12.7.3: only the keys changed on THIS device since the last sync win; everything else follows the cloud
+      const bb = Object.assign({}, C.DEFAULTS, sb);
+      Object.keys(ls).forEach(k => { if (!NOSYNC[k] && !sameVal(ls[k], bb[k]) && !sameVal(ls[k], st[k])) { st[k] = ls[k]; local = true; } });
+    } else if (B && setHash(ls) !== B.s) { Object.assign(st, ls); local = true; }   // data saved by an older app version (no per-key copy yet)
     else if (!B) {                                   // no common base yet (new sign-in): keep what was typed here wherever the cloud copy still has the default
       SET_KEYS.concat(['lockedViews', 'sectionLockMin', 'autoLockMin', 'keypadShuffle', 'pinSalt', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH']).forEach(k => {
         const dv = C.DEFAULTS[k], isDef = v => v == null || v === '' || String(v) === String(dv == null ? '' : dv) || (Array.isArray(v) && !v.length);
@@ -597,8 +636,8 @@
     if (d.integrity) { const g = integrity(d); if (g.h !== d.integrity.h || g.t !== d.integrity.t) throw mk('badfile'); }
     const m = mergeData(d);
     S.applying = true;
-    try { COLL.forEach(k => { DB[k] = m.out[k]; }); DB.settings = m.st; C.migrate(); C.saveAll(); } finally { S.applying = false; }
-    set(KEY.rev, f.modifiedTime); set(KEY.fid, f.id); saveBase(snap(d));
+    try { COLL.forEach(k => { DB[k] = m.out[k]; }); DB.settings = m.st; if (rescueInto(DB.settings)) m.local = true; C.migrate(); C.saveAll(); } finally { S.applying = false; }
+    set(KEY.rev, f.modifiedTime); set(KEY.fid, f.id); saveBase(snap(d)); saveSetBase(d.settings);
     del('esypos_dirty'); if (m.local) set(KEY.dirty, '1'); else { del(KEY.dirty); set(KEY.last, String(Date.now())); }
     try { if (window.App) App.refresh(); if (window.POS && POS.renderCart) POS.renderCart(); } catch (_) {}
     return m.local;
@@ -620,7 +659,7 @@
       set(KEY.rev, f.modifiedTime); set(KEY.fid, f.id); set(KEY.last, String(Date.now())); set('esypos_g_cnt', String(total(integrity(d).n)));
       del(KEY.dirty); del('esypos_dirty');
     } finally { setTimeout(() => { S.applying = false; del(KEY.dirty); del('esypos_dirty'); setStatus('ok'); }, 800); }
-    saveBase(snap(d));
+    saveBase(snap(d)); saveSetBase(d.settings);
     try { if (window.App) App.refresh(); if (window.POS && POS.renderCart) POS.renderCart(); } catch (_) {}
     toast('↻ Updated from the latest backup');
   }
@@ -691,7 +730,7 @@
     // Renew the token a few minutes before it expires so sync never stops while the shop is open.
     setInterval(() => { if (isOn() && get(KEY.dirty) === '1' && document.visibilityState === 'visible' && !S.busy && S.tok && S.exp - Date.now() < 8 * 60 * 1000 && S.exp - Date.now() > 0) { resume(true); } }, 60 * 1000);
   }
-  window.Cloud = { _t: { hasLocal, mergeData }, replaceNow, autoToggle(on) { set('esypos_g_auto', on ? '1' : '0'); toast(on ? 'Live sync on' : 'Live sync off'); }, init, chip, markDirty, signIn, signOut, resetPin, syncNow, pull, snapshots, panel, setup, renderUI, isOn };
+  window.Cloud = { _t: { hasLocal, mergeData }, reconnect() { if (isOn() && !validTok() && get(KEY.dirty) === '1' && navigator.onLine) syncNow(); }, replaceNow, autoToggle(on) { set('esypos_g_auto', on ? '1' : '0'); toast(on ? 'Live sync on' : 'Live sync off'); }, init, chip, markDirty, signIn, signOut, resetPin, syncNow, pull, snapshots, panel, setup, renderUI, isOn };
   if (!isOn()) showGate('new');
   window.addEventListener('storage', e => { if (e.key === KEY.on && e.newValue !== '1') location.reload(); });
 })();

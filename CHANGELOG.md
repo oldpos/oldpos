@@ -2,6 +2,13 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.7.3 — Shop details, PIN & settings now really reach Google Drive · safer Log out
+- **Fixed (root cause): shop name / phone / address / PIN were lost after Log out → Sign in.** Google's access token lasts only 1 hour. After that, every change stayed "pending" on the phone only; Log out then wiped the device and the cloud copy still held the old blank values. Now: (1) when you change something and the token has run out, Old POS renews it quietly while your tap is still fresh, and the **Save changes** / **Set PIN** buttons ask you to reconnect if needed; (2) anything typed but not yet synced when you log out is kept as a small "rescue" and put back automatically when you sign in again with the same Google account; (3) the unsynced-logout dialog now saves a backup file first.
+- **Fixed: two phones overwriting each other's settings.** Settings are now merged key by key against the last agreed copy (a stale blank or old value can no longer replace what you typed on the other phone). The upload also takes a true snapshot, so edits made *while* a backup runs are never marked as synced.
+- **Security: Log out now really clears the phone.** The rolling local safety copies (all shop data) used to survive Log out; they are now deleted. Local copies no longer contain PIN hashes. Nothing can be written back to the device after Log out (new `Core.halt()`).
+- **Security:** page policy no longer allows images from any website (only Google profile photos); fixed broken screenshot links on the website pages.
+- Cache `v12.7.3`.
+
 ## v12.7.2 — Shop details & lock now really saved · same user count everywhere · Reports tile
 - **Fixed: shop name, phone, address, PIN and other Settings were not kept** after sign-out / sign-in or an update. Cause: a shop that had only Settings filled in (no product or sale yet) counted as "empty", so it was never backed up and the next sign-in replaced it with blanks; the sign-in merge also let the cloud's blank values win when this device had no sync base. Settings now count as data, are merged field by field (typed values survive, cloud values win when both exist), and shop fields **save the moment you change them** (no need to press Save).
 - **Total users is the same on every phone.** The app no longer keeps the highest number it ever saw (that left some phones on an old, higher count); it shows the server number, with a cache-buster. `tools/user-counter.gs`: result cache 30 s → 5 s (re-deploy the script once).
