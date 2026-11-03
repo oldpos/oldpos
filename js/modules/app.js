@@ -12,6 +12,7 @@
     { id: 'expenses', label: 'Expenses', icon: 'fa-money-bill-wave' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-column' },
     { id: 'barcodes', label: 'Barcode Labels', icon: 'fa-barcode' },
+    { id: 'ads', label: 'Facebook Ads', icon: 'fa-paper-plane' },
     { id: 'settings', label: 'Settings', icon: 'fa-sliders' }
   ];
   const Views = {};
