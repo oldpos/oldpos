@@ -2,6 +2,12 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.8.0 — Facebook Ads page (Dhaka SMM) inside the app
+- **New: Facebook Ads page.** A small "Sponsored" card on the Dashboard (hide for 7 days with the ×) and a *Facebook Ads* item in the menu open a separate page: pick a package (or a custom budget / days), paste the Facebook Page or Post link, goal, area, age and phone, then **Send order** — Telegram / WhatsApp opens with the order already written (or *Copy order text*). Nothing is sent automatically; no shop data is shared.
+- **Settings in one place:** `PROPOS_CONFIG.smm` in `js/core/config.js` — Telegram username, WhatsApp number, bKash / Nagad numbers, website and the packages (name, price, days). New files `js/modules/smm.js`, `css/smm.css`.
+- Website text now says "no third-party ads" because of the optional Old POS ads service.
+- Cache `v12.8.0`.
+
 ## v12.7.3 — Shop details, PIN & settings now really reach Google Drive · safer Log out
 - **Fixed (root cause): shop name / phone / address / PIN were lost after Log out → Sign in.** Google's access token lasts only 1 hour. After that, every change stayed "pending" on the phone only; Log out then wiped the device and the cloud copy still held the old blank values. Now: (1) when you change something and the token has run out, Old POS renews it quietly while your tap is still fresh, and the **Save changes** / **Set PIN** buttons ask you to reconnect if needed; (2) anything typed but not yet synced when you log out is kept as a small "rescue" and put back automatically when you sign in again with the same Google account; (3) the unsynced-logout dialog now saves a backup file first.
 - **Fixed: two phones overwriting each other's settings.** Settings are now merged key by key against the last agreed copy (a stale blank or old value can no longer replace what you typed on the other phone). The upload also takes a true snapshot, so edits made *while* a backup runs are never marked as synced.
