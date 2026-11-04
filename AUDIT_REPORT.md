@@ -1,3 +1,24 @@
+# Old POS v12.8.0 — Audit pass 2
+
+Reviewed every JS file, the service worker, CSP and the Drive script; tested with a mocked Google/Drive in headless Chromium.
+
+| # | Area | Problem | Fix |
+|---|------|---------|-----|
+| 1 | Sync | Phone that signed in before a backup existed never found the file made later by another phone (fid empty -> poll returned) | poll looks the file up (throttled) |
+| 2 | Sync | Edits to expenses / bills / purchases / returns reverted when another phone saved first (only adds/deletes merged) | all collections merged per record (`Bk[id] === 1` = old format, treated as unchanged) |
+| 3 | Sync | Receive-only phone with expired token never updated | silent renewal also when live sync is on and token is stale |
+| 4 | Sync | New data waited up to 45 s | immediate check on focus / return to app |
+| 5 | UX | Live sync re-drew Settings while typing | skipped while a Settings field has focus |
+| 6 | Security | Remote settings copied key-by-key without filtering (`__proto__`, objects, huge text) | `Core.cleanSettings()` on every entry point |
+| 7 | Security | Staff could Log out / wipe data without Admin PIN | Admin PIN asked when set |
+| 8 | Audit | PIN reset through Google left no trace | Security log entry |
+
+Tested: owner sets company name + Admin PIN on device A -> device B receives name and PIN (right PIN accepted, wrong rejected); B changes PIN -> A follows; 103 control clicks across 10 views, 0 JS errors; 2 viewports no overflow; sale + sync; expired token + logout keeps edits.
+
+Open (needs architecture change or is a product decision): inline `onclick` forces `unsafe-inline`; Google token in localStorage; 4-digit PIN hash is in the Drive file (needed for cross-device PIN) so anyone who can read that file can brute-force it offline - use a strong Google password / 2-step verification; "Forgot PIN via Google" works for anyone holding an unlocked phone that is already signed in to the owner's Google account.
+
+---
+
 # Old POS v12.7.3 — Audit (backup of shop details / PIN, logout safety)
 
 ## Root cause found and reproduced (mock Google Drive, headless Chromium)

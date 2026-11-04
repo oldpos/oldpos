@@ -10,10 +10,10 @@ const APP_CACHE = `oldpos-app-${CACHE_VERSION}`;
 
 const CRITICAL = [
   './', './index.html', './offline.html', './manifest.webmanifest',
-  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/refine.css', './css/smm.css', './css/icons.css',
+  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/refine.css', './css/icons.css',
   './fonts/inter-latin-var.woff2', './fonts/fa-solid-subset.woff2', './fonts/fa-brands-subset.woff2',
   './js/core/core.js', './js/core/barcode.js', './js/core/wedge.js', './js/core/linear.js', './js/core/ui.js', './js/core/config.js',
-  './js/modules/app.js', './js/modules/people.js', './js/modules/misc.js', './js/modules/home.js', './js/modules/smm.js', './js/modules/settings.js',
+  './js/modules/app.js', './js/modules/people.js', './js/modules/misc.js', './js/modules/home.js', './js/modules/settings.js',
   './js/services/cloud.js', './js/services/guard.js', './js/services/labelprinter.js', './js/services/pwa.js', './js/services/security.js', './js/services/keypad.js', './js/services/recovery.js', './js/services/safety.js', './js/services/appshell.js', './js/services/community.js',
   './assets/icons/icon-192.png', './assets/icons/icon-512.png', './assets/icons/maskable-512.png', './assets/icons/apple-touch-icon.png'
 ];

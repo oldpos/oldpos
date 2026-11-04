@@ -1,0 +1,228 @@
+/* Old POS — Design refinement (v12.5.0). Loaded last. Works with every colour theme, light and dark.
+   Skipped for the "Original" look (html.classic). Goals: calmer background, one consistent card / control language,
+   frosted bars, clearer hierarchy, better desktop layout. */
+html:not(.classic){
+  --card-r:18px;
+  --elev-1:0 1px 2px rgba(15,23,42,.04),0 8px 22px -16px rgba(15,23,42,.20);
+  --elev-2:0 2px 4px rgba(15,23,42,.05),0 18px 36px -20px rgba(15,23,42,.30);
+  --line:color-mix(in srgb,var(--text) 9%,transparent);
+}
+html.dark:not(.classic){--elev-1:0 8px 22px -16px rgba(0,0,0,.7);--elev-2:0 18px 36px -20px rgba(0,0,0,.85);--line:color-mix(in srgb,var(--text) 12%,transparent)}
+
+/* ----- background: quiet, almost flat ----- */
+html:not(.classic) body{background:var(--bg)}
+html:not(.classic) body::before,html:not(.classic) body::after{display:none}
+html:not(.classic) .main{background:transparent}
+
+/* ----- bars ----- */
+html:not(.classic) .topbar{background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-bottom:1px solid var(--line);box-shadow:none}
+html:not(.classic) .tb-shop{font-size:15px;letter-spacing:-.01em}
+html:not(.classic) .bottom-nav{background:color-mix(in srgb,var(--card) 86%,transparent);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border-top:1px solid var(--line);box-shadow:0 -10px 30px -22px rgba(15,23,42,.35)}
+html:not(.classic) .bottom-nav button{font-weight:500;letter-spacing:0}
+html:not(.classic) .bottom-nav button.active{font-weight:650;color:var(--primary)}
+html:not(.classic) .sidebar{background:var(--card);border-right:1px solid var(--line);box-shadow:none}
+html:not(.classic) .nav-link{border-radius:12px;font-weight:500;padding-top:10px;padding-bottom:10px}
+html:not(.classic) .nav-link:hover{background:var(--hover)}
+html:not(.classic) .nav-link.active{background:color-mix(in srgb,var(--primary) 11%,var(--card));color:var(--primary);box-shadow:none;font-weight:650}
+html:not(.classic) .nav-link.active i{color:var(--primary)}
+html[data-skin] .nav-link.active{background:color-mix(in srgb,var(--primary) 11%,var(--card));box-shadow:none}
+
+/* ----- cards, stats, rows ----- */
+html:not(.classic) .card,html:not(.classic) .stat,html:not(.classic) .pcard{border-radius:var(--card-r);border:1px solid var(--line);box-shadow:var(--elev-1)}
+html:not(.classic) .pcard:hover,html:not(.classic) .stat:hover{box-shadow:var(--elev-2)}
+html:not(.classic) .stat.hl{background:linear-gradient(135deg,var(--primary2),var(--primary));border-color:transparent;box-shadow:0 14px 28px -16px var(--primary)}
+html:not(.classic) .page-head{margin-bottom:16px}
+html:not(.classic) .page-head h2{font-size:24px;font-weight:750;letter-spacing:-.025em}
+html:not(.classic) .page-head p{font-size:13px}
+html:not(.classic) .row{border-bottom:1px solid var(--line)}
+html:not(.classic) .row:last-child{border-bottom:0}
+html:not(.classic) .row:hover{background:color-mix(in srgb,var(--primary) 5%,var(--card))}
+html:not(.classic) .avatar{border-radius:14px;background:color-mix(in srgb,var(--primary) 12%,var(--card));color:var(--primary)}
+html:not(.classic) .sec-title{font-weight:650}
+html:not(.classic) .pcard .pimg,html:not(.classic) .pcard .thumb{border-radius:14px}
+
+/* ----- controls ----- */
+html:not(.classic) .btn{border-radius:14px;font-weight:600;letter-spacing:0;transition:transform .12s,box-shadow .2s,background .2s,filter .2s}
+html:not(.classic) .btn:active:not(:disabled){transform:scale(.97)}
+html:not(.classic) .btn-primary{background:linear-gradient(135deg,var(--primary2),var(--primary));box-shadow:0 8px 18px -10px var(--primary)}
+html:not(.classic) .btn-primary:hover:not(:disabled){filter:brightness(1.06)}
+html:not(.classic) .btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text)}
+html:not(.classic) .btn-ghost:hover{background:var(--hover)}
+html:not(.classic) .input{border-radius:14px;background:var(--input);border:1px solid var(--border)}
+html:not(.classic) .input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--ring)}
+html:not(.classic) .chip{border-radius:99px;font-weight:550;transition:all .15s}
+html:not(.classic) .chip.on{background:var(--primary);border-color:var(--primary)}
+html:not(.classic) .seg{border-radius:13px}
+html:not(.classic) .badge,html:not(.classic) .b-p{border-radius:99px}
+html:not(.classic) .switch{border-radius:14px}
+html:not(.classic) .modal-sheet{border-radius:24px 24px 0 0;border:1px solid var(--line);box-shadow:0 -18px 50px -20px rgba(0,0,0,.45)}
+html:not(.classic) .modal-head{border-bottom:1px solid var(--line)}
+@media(min-width:700px){html:not(.classic) .modal-sheet{border-radius:24px}}
+html:not(.classic) #toast{border-radius:14px;box-shadow:var(--elev-2)}
+html:not(.classic) ::-webkit-scrollbar{width:10px;height:10px}
+html:not(.classic) ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--text) 18%,transparent);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+
+/* ----- POS ----- */
+html:not(.classic) .pcard .pname,html:not(.classic) .pcard .t{font-weight:600}
+html:not(.classic) .cart-bar{border-radius:18px}
+html:not(.classic) .cart-bar.empty{background:var(--card);border:1px solid var(--line);box-shadow:var(--elev-1)}
+
+/* ----- dashboard ----- */
+html:not(.classic) .sd{max-width:1080px}
+@media(min-width:900px){
+  .sd-acts{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .sd-act{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 16px;font-size:14px;font-weight:600}
+  .sd-act i{width:40px;height:40px}
+  .sd-big{font-size:40px}
+  .sd-spark{width:220px;height:64px}
+  .sd-hero{padding:24px 26px}
+}
+
+/* ----- dark mode warmth ----- */
+html.dark:not(.classic) .sd-act{background:var(--card)}
+html.dark:not(.classic) .sd-act.pri{background:linear-gradient(135deg,var(--primary2),var(--primary))}
+@media(prefers-reduced-motion:reduce){html:not(.classic) *{transition-duration:.01ms!important}}
+
+/* =====================================================================
+   v12.5.0 — Readable on every theme · header mode button · dashboard tiles
+   ---------------------------------------------------------------------
+   --fill / --fill2 : deep, solid brand colours that ALWAYS carry white text (contrast ≥ 4.5).
+   --acc            : the colour for coloured TEXT and icons (readable on the card in light and dark).
+   Bright theme colours (--primary) stay for rings, bars and tints — never behind white text.
+   ===================================================================== */
+html:not(.classic){--fill:#2563eb;--fill2:#1d4ed8;--acc:var(--ptext);--fill-grad:linear-gradient(135deg,var(--fill),var(--fill2))}
+html[data-skin="emerald"]{--fill:#04855d;--fill2:#047857}
+html[data-skin="ocean"]{--fill:#077f9c;--fill2:#0e7490}
+html[data-skin="sunset"]{--fill:#c2480a;--fill2:#a63c08}
+html[data-skin="royal"]{--fill:#7c3aed;--fill2:#6d28d9}
+html[data-skin="rose"]{--fill:#e11d48;--fill2:#be123c}
+html[data-skin="graphite"]{--fill:#334155;--fill2:#1e293b}
+html.dark[data-skin="graphite"]{--fill:#475569;--fill2:#334155}
+/* in dark mode the pale --ptext tints are for text; icons/lines use the bright colour */
+html.dark:not(.classic){--acc:var(--primary2,var(--primary))}
+html.dark[data-skin="graphite"]{--acc:#e2e8f0}
+
+/* ---- everything filled with the brand colour: deep fill + white text ---- */
+html:not(.classic):not(.z1):not(.z2) body .btn-primary,
+html:not(.classic):not(.z1):not(.z2) body .sd-act.pri,
+html:not(.classic):not(.z1):not(.z2) body .stat.hl,
+html:not(.classic):not(.z1):not(.z2) body .chip.on,
+html:not(.classic):not(.z1):not(.z2) body .cart-bar:not(.empty),
+html:not(.classic):not(.z1):not(.z2) body .bottom-nav .bn-scan,
+html:not(.classic):not(.z1):not(.z2) body .g-av,
+html:not(.classic):not(.z1):not(.z2) body .sd-av,
+html:not(.classic):not(.z1):not(.z2) body .lp-signin,
+html:not(.classic):not(.z1):not(.z2) body .lp-steps li span,
+html:not(.classic):not(.z1):not(.z2) body .pwa-update-bar button,
+html:not(.classic):not(.z1):not(.z2) body .pwa-install-btn,
+html:not(.classic):not(.z1):not(.z2) body .tool-count,
+html:not(.classic):not(.z1):not(.z2) body .seg button.on{background:var(--fill-grad);color:#fff;border-color:transparent}
+html:not(.classic):not(.z1):not(.z2) body .btn-primary:hover:not(:disabled){filter:brightness(1.08)}
+html:not(.classic):not(.z1):not(.z2) body .btn-primary:disabled{opacity:.55}
+html:not(.classic):not(.z1):not(.z2) body .btn-primary,html:not(.classic):not(.z1):not(.z2) body .sd-act.pri,html:not(.classic):not(.z1):not(.z2) body .cart-bar:not(.empty){box-shadow:0 8px 18px -10px var(--fill),inset 0 1px 0 rgba(255,255,255,.18)}
+html:not(.classic):not(.z1):not(.z2) body .sd-act.pri i,html:not(.classic):not(.z1):not(.z2) body .sd-act.pri span{color:#fff}
+html:not(.classic):not(.z1):not(.z2) body .sd-act.pri i{background:rgba(255,255,255,.2)}
+html:not(.classic):not(.z1):not(.z2) body .hero2{background:linear-gradient(135deg,var(--fill),var(--fill2))}
+html:not(.classic):not(.z1):not(.z2) body .stat.hl *{color:#fff}
+html.dark[data-skin="graphite"]:not(.z1):not(.z2) body .btn-primary,html.dark[data-skin="graphite"]:not(.z1):not(.z2) body .sd-act.pri{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+
+/* ---- coloured text & icons ---- */
+html:not(.classic) .nav-link.active,html:not(.classic) .nav-link.active i,
+html:not(.classic) .bottom-nav button.active,html:not(.classic) .bottom-nav button.active svg,
+html:not(.classic) .sd-link,html:not(.classic) .tb-shop em,
+html:not(.classic) .bs-row>.fa-users,html:not(.classic) .tb-theme,html:not(.classic) .sd-ti,
+html:not(.classic) .avatar{color:var(--acc)}
+html:not(.classic) .sd-link{font-weight:600}
+html:not(.classic) .sd-link:hover{text-decoration:underline}
+
+/* ---- Dark / Light button in the desktop header ---- */
+.db-theme{all:unset;box-sizing:border-box;flex:none;width:38px;height:38px;border-radius:50%;display:inline-grid;place-items:center;cursor:pointer;font-size:16px;
+  color:var(--acc,var(--primary));background:color-mix(in srgb,var(--primary) 10%,var(--card));border:1px solid var(--border);transition:transform .15s,background .2s,border-color .2s}
+.db-theme:hover{background:color-mix(in srgb,var(--primary) 18%,var(--card));border-color:color-mix(in srgb,var(--primary) 40%,var(--border))}
+.db-theme:active{transform:scale(.92)}
+.db-theme:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+@media(max-width:1023px){.db-theme{display:none}}
+.db-actions{gap:10px}
+
+/* ---- dashboard (v12.7): three slim, simple tiles + even spacing between every block ---- */
+html body .sd{display:flex;flex-direction:column;gap:12px;padding:0 0 28px}
+html body .sd>*{margin:0}
+html body .sd .guide{margin-top:0}
+html body .sd .sd-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+html body .sd .sd-tiles .sd-tile{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:0;min-height:52px;padding:8px 12px;cursor:pointer;
+  background:var(--card);border:1px solid var(--line,var(--border));border-radius:12px;box-shadow:none;transform:none;transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
+html body .sd .sd-tiles .sd-tile:hover{background:var(--hover,var(--card));border-color:color-mix(in srgb,var(--primary) 35%,var(--border));transform:none}
+html body .sd .sd-tiles .sd-tile:active{background:var(--hover,var(--card));transform:none}
+html body .sd .sd-tiles .sd-tile:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+html body .sd .sd-tile .sd-tk{display:block;font-size:11.5px;line-height:1.3;font-weight:400;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .sd .sd-tile b.v{display:block;height:21px;min-height:0;margin:0;font-size:15.5px;font-weight:600;line-height:21px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .sd .sd-tile .lock-mask{display:flex;align-items:center;padding:0;gap:6px;height:21px;background:none;color:var(--muted);font-size:13px;font-weight:600;letter-spacing:0}
+html body .sd .sd-tile .lock-mask i{font-size:11px}
+html body .sd .sd-tile .lock-mask .lm-d{display:inline;font-size:inherit;color:inherit;letter-spacing:1.5px}
+html body .sd .sd-tile .lock-mask em{display:none}
+@media(min-width:760px){
+  html body .sd .sd-tiles{gap:12px}
+  html body .sd .sd-tiles .sd-tile{min-height:56px;padding:9px 16px}
+  html body .sd .sd-tile .sd-tk{font-size:12.5px}
+  html body .sd .sd-tile b.v{font-size:17px}
+}
+/* the cards under the chart never touch: one column on phones, two on wide screens, always 12px apart */
+html body .sd .sd-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+html body .sd .sd-cols .sd-card{margin:0}
+@media(min-width:760px){html body .sd .sd-cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.js-lockbtn[hidden]{display:none!important}
+@media(max-width:1023px){html body .topbar .tb-theme{width:38px;height:38px}html body .topbar .topbar-actions{gap:6px}}
+.js-lockbtn.is-open{color:var(--warn,#b45309)}
+
+/* ---- Top sellers ---- */
+.sd-top{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line,var(--border))}
+.sd-top:first-of-type{border-top:0}
+.sd-rk{flex:none;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;font-size:12.5px;font-weight:700;color:var(--acc);background:color-mix(in srgb,var(--primary) 12%,var(--card))}
+.sd-tn{flex:1;min-width:0;font-size:14px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd-tn small{display:block;margin-top:1px;font-size:11.5px;font-weight:400;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.sd-tb{display:block;height:4px;margin-top:6px;border-radius:99px;background:color-mix(in srgb,var(--text) 7%,transparent);overflow:hidden}
+.sd-tb u{display:block;height:100%;border-radius:99px;background:var(--primary);text-decoration:none}
+
+/* ---- general polish ---- */
+html:not(.classic) .v,html:not(.classic) .sd-big,html:not(.classic) .sd-rv,html:not(.classic) .stat b{font-variant-numeric:tabular-nums}
+html:not(.classic) :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+html:not(.classic) .input:focus-visible{outline:0}
+html:not(.classic) .sd-card{border-radius:var(--card-r);border:1px solid var(--line);box-shadow:var(--elev-1)}
+html:not(.classic) .sd-act{border-radius:16px;border:1px solid var(--line);box-shadow:var(--elev-1);transition:transform .15s,box-shadow .2s,border-color .2s}
+html:not(.classic) .sd-act:hover{box-shadow:var(--elev-2);transform:translateY(-1px)}
+html:not(.classic) .sd-tile{border:1px solid var(--line);box-shadow:var(--elev-1);border-radius:16px}
+@media(max-width:600px){html:not(.classic) .sd-tile{border:0;box-shadow:none;border-radius:0}}
+html:not(.classic) .desk-bar .sync-chip{height:38px;border-radius:99px}
+html:not(.classic) .db-title b{letter-spacing:-.02em}
+@media(prefers-reduced-motion:reduce){.db-theme,.sd-act,.sd-tile{transition:none}}
+
+/* desktop: the title bar already names the page, so the big duplicate heading is dropped (the subtitle and the action buttons stay) */
+@media(min-width:1024px){
+  html:not(.classic) .view>.page-head h2,html:not(.classic) .view .page-head:first-child h2{display:none}
+  html:not(.classic) .page-head{align-items:center;min-height:40px}
+  html:not(.classic) .page-head p{margin:0;font-size:14px;color:var(--muted)}
+}
+
+/* small-print and "good" green: slightly stronger in light mode so they stay readable on tinted cards */
+html:not(.classic):not(.dark){--muted:#566377;--ok:#047857}
+html:not(.classic) .cart-bar.empty small,html:not(.classic) .cart-bar.empty .cb-sub{color:var(--muted);opacity:1}
+/* "Original" look in dark mode: slightly deeper blue behind white text */
+html.classic.dark{--grad:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%)}
+
+/* ---- recovery question + dialogs over the full-screen lock (v12.7) ---- */
+.rec-box{margin-top:14px;padding:12px;border:1px solid var(--line,var(--border));border-radius:12px;background:color-mix(in srgb,var(--primary) 4%,var(--card))}
+.rec-box .label{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.rec-box .label i{color:var(--acc,var(--primary))}
+.rec-q{padding:11px 12px;border-radius:10px;background:color-mix(in srgb,var(--primary) 8%,var(--card));border:1px solid var(--line,var(--border));font-weight:600;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere}
+.rec-msg{min-height:20px;margin-top:8px;color:var(--bad)}
+.modal-back.rec-top{z-index:320}
+
+/* ---- v12.7.1: PIN dialogs use the whole phone screen, so the dots and the keypad are always visible together ---- */
+@media(max-width:699px){
+  html body .modal-back:has(input[data-pin]){align-items:stretch}
+  html body .modal-back:has(input[data-pin]) .modal-sheet{max-width:none;width:100%;height:100%;max-height:100%;border-radius:0;border:0;box-shadow:none}
+  html body .modal-back:has(input[data-pin]) .modal-sheet::before{display:none}
+  html body .modal-back:has(input[data-pin]) .modal-body{scroll-padding-bottom:20px}
+}
+@media(max-height:760px){.pk-key{height:44px;font-size:20px}.pk{margin-top:10px;padding:8px}.pk-bar{margin-bottom:6px}}
+.rec-box select.input{width:100%}

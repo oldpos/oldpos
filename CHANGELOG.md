@@ -2,10 +2,10 @@
 
 All notable changes to Old POS. Latest first.
 
-## v12.8.0 — Facebook Ads page (Dhaka SMM) inside the app
-- **New: Facebook Ads page.** A small "Sponsored" card on the Dashboard (hide for 7 days with the ×) and a *Facebook Ads* item in the menu open a separate page: pick a package (or a custom budget / days), paste the Facebook Page or Post link, goal, area, age and phone, then **Send order** — Telegram / WhatsApp opens with the order already written (or *Copy order text*). Nothing is sent automatically; no shop data is shared.
-- **Settings in one place:** `PROPOS_CONFIG.smm` in `js/core/config.js` — Telegram username, WhatsApp number, bKash / Nagad numbers, website and the packages (name, price, days). New files `js/modules/smm.js`, `css/smm.css`.
-- Website text now says "no third-party ads" because of the optional Old POS ads service.
+## v12.8.0 — Shop name & Admin PIN follow you to every signed-in device · deeper hardening
+- **Automatic cross-device update.** Change the company name, address, phone, Admin PIN or any setting on one device: it is saved to Google Drive and every other signed-in device picks it up by itself (within seconds while the app is open, at once when you return to it) and says "Shop settings updated from another device". Fixed: a phone that signed in *before* the first backup existed never found the file that another phone created later. A phone whose Google token ran out still receives updates (quiet renewal on the next tap).
+- **Edits no longer revert.** Expenses, bills, purchases, payments, returns and stock adjustments are now merged record by record like products and customers, so editing one on phone A is not undone when phone B saves first.
+- **Security:** settings that arrive from Drive, a backup file or a local copy are rebuilt from safe values only (blocks `__proto__` tricks, nested objects, giant text). Log out and *Delete all data* now ask for the Admin PIN when one is set. "PIN reset through Google" is written to the Security log. The page is not re-drawn while you are typing in Settings.
 - Cache `v12.8.0`.
 
 ## v12.7.3 — Shop details, PIN & settings now really reach Google Drive · safer Log out
