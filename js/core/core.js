@@ -55,8 +55,8 @@
     const names = Array.from(pending); pending.clear();
     let synced = false;
     names.forEach(name => {
-      const key = K[name]; const ok = writeKey(key, name === 'settings' ? DB.settings : DB[name]);
-      if (ok && name !== 'cart') synced = true;
+      const key = K[name]; writeKey(key, name === 'settings' ? DB.settings : DB[name]);
+      if (name !== 'cart') synced = true;   // v12.8.1: even if THIS phone's storage is full the change is still sent to Google Drive
     });
     if (synced) { try { root.localStorage.setItem('esypos_dirty', '1'); } catch (_) {} if (root.Cloud) root.Cloud.markDirty(); }
   }
@@ -248,7 +248,7 @@
     if (!c) return rows;
     if (num(c.openingDue)) rows.push({ date: c.created || '1970-01-01T00:00:00.000Z', type: 'opening', desc: 'Opening payable', debit: num(c.openingDue), credit: 0 });
     DB.purchases.forEach(p => { if (p.supplierId === id) rows.push({ date: p.date, type: 'purchase', desc: 'Purchases #' + p.no + ' (Total ' + money(p.total) + ', Payment ' + money(p.paid) + ')', debit: num(p.due), credit: 0 }); });
-    DB.spayments.forEach(p => { if (p.supplierId === id) rows.push({ date: p.date, type: 'payment', desc: 'Payment' + (p.note ? ' — ' + p.note : ''), debit: 0, credit: num(p.amount) }); });
+    DB.spayments.forEach(p => { if (p.supplierId === id) rows.push({ date: p.date, type: 'payment', desc: 'Payment' + (p.note ? ' — ' + p.note : ''), debit: 0, credit: num(p.amount), ref: p.id }); });
     rows.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
     let bal = 0; rows.forEach(r => { bal = r2(bal + r.debit - r.credit); r.balance = bal; });
     return rows;
@@ -334,6 +334,15 @@
   const SECRET_KEYS = ['pinHash', 'pinSalt', 'adminHash', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'];
   const stripSecrets = s => { const o = Object.assign({}, s || {}); SECRET_KEYS.forEach(k => { o[k] = ''; }); return o; };
   const keepSecrets = () => { const o = {}; SECRET_KEYS.forEach(k => { o[k] = (DB.settings && DB.settings[k]) || ''; }); return o; };
+  function usage() {                                  // bytes used by Old POS in localStorage (UTF-16: 2 bytes per character)
+    let n = 0; try { for (let i = 0; i < root.localStorage.length; i++) { const k = root.localStorage.key(i); n += (k.length + (root.localStorage.getItem(k) || '').length) * 2; } } catch (_) {}
+    return n;
+  }
+  let warnedAt = 0;
+  function checkSpace() {                             // browsers allow about 5 MB; warn early, once a day
+    const u = usage(), lim = 5 * 1048576; if (u < lim * 0.7 || Date.now() - warnedAt < 864e5) return u;
+    warnedAt = Date.now(); toast('⚠️ Phone storage is ' + Math.round(u / lim * 100) + '% full. Remove product photos you do not need, or ask for the next update (bigger storage).'); return u;
+  }
   function halt() { halted = true; pending.clear(); clearTimeout(saveTimer); saveTimer = null; }
   /* v12.8.0: settings that come from outside (Drive, backup file, local copy) are rebuilt from safe values only:
      odd key names such as __proto__, nested objects and giant strings are dropped before they can touch the app. */
@@ -351,7 +360,7 @@
     });
     return o;
   }
-  const api = { cleanSettings, halt, K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
+  const api = { usage, checkSpace, cleanSettings, halt, K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
     fmtDate, fmtTime, fmtDT, invLabel, toast, unitLabel, findProduct, findCustomer, findSupplier, findSale, customerBalance, supplierBalance, totalCustomerDue,
     totalSupplierDue, returnedQty, returnedAmount, customerLedger, supplierLedger, buildReport, stockValue, toCSV, parseCSV, download, inRange };
   root.Core = api;

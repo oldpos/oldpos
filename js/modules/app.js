@@ -887,7 +887,7 @@
     C.load(); POS.taxInit(); buildNav();
     const start = () => {
       let first = 'dashboard'; try { const g = new URLSearchParams(location.search).get('go'); if (g && App.Views[g]) first = g; } catch (_) {}   // app-icon shortcuts: index.html?go=products
-      App.go('pos'); App.go(first); checkPendingBackup(); POS.renderCart(); if (window.Cloud) Cloud.init();
+      App.go('pos'); App.go(first); setTimeout(() => { try { C.checkSpace(); } catch (_) {} }, 6000); checkPendingBackup(); POS.renderCart(); if (window.Cloud) Cloud.init();
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // ask the browser not to evict shop data
     };
     if (window.Lock) Lock.init(start); else start();

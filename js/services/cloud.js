@@ -127,7 +127,7 @@
     const meta = fid ? {} : { name: VIS, mimeType: 'application/json' };   // no parent = My Drive, visible to the user
     const body = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
       '\r\n--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + text + '\r\n--' + b + '--';
-    const r = await api((fid ? UPLOAD + '/' + fid : UPLOAD) + '?uploadType=multipart&fields=id,modifiedTime',
+    const r = await api((fid ? UPLOAD + '/' + fid : UPLOAD) + '?uploadType=multipart&fields=id,modifiedTime,size',
       { method: fid ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body });
     return r.json();
   }
@@ -206,9 +206,13 @@
       if (!force && !manual && last >= 20 && cnt < last * 0.5) throw mk('shrink');
       if (f) await snapshotBefore(f);
       const hidden = f && (f.spaces || []).indexOf('appDataFolder') >= 0;   // older hidden file: create the visible one, keep the old as a copy
-      const res = await writeMain(f && !hidden ? f.id : null, JSON.stringify(pl));
-      const back = await download(res.id);                          // read it back: only call it a backup if it matches
-      if (!back || !back.integrity || back.integrity.h !== pl.integrity.h) throw mk('verify');
+      const bodyText = JSON.stringify(pl), want = new Blob([bodyText]).size;
+      const res = await writeMain(f && !hidden ? f.id : null, bodyText);
+      // v12.8.1: Drive reports the stored size - when it matches there is no need to download the whole file again
+      if (!(res && Number(res.size) === want)) {                    // otherwise read it back: only call it a backup if it matches
+        const back = await download(res.id);
+        if (!back || !back.integrity || back.integrity.h !== pl.integrity.h) throw mk('verify');
+      }
       set('esypos_g_cnt', String(cnt)); saveBase(sn); saveSetBase(pl.settings);
       set(KEY.fid, res.id); set(KEY.rev, res.modifiedTime); set(KEY.last, String(Date.now()));
       S.retries = 0;

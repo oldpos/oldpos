@@ -1,3 +1,16 @@
+# Old POS v12.8.1 — Audit pass 3
+| # | Problem | Fix |
+|---|---------|-----|
+| 1 | Full local storage -> change never marked for cloud (only after a successful local write) | always marked dirty |
+| 2 | No early warning before the ~5 MB browser limit (about 10,000 bills) | `Core.checkSpace()` at 70% |
+| 3 | A mistyped due collection / supplier payment could not be removed | tap row -> Admin PIN -> undo |
+| 4 | Every backup was uploaded and then downloaded again to verify | size compare, full read-back only on mismatch |
+
+Open and important: all shop data lives in localStorage (~5 MB). Years of bills will reach that limit; the real fix is moving storage to IndexedDB (large change, needs its own release and migration test).
+Tested: undo changes balance and syncs; full-storage sale reaches Drive; 0 verification downloads on a normal push; earlier scenarios re-run.
+
+---
+
 # Old POS v12.8.0 — Audit pass 2
 
 Reviewed every JS file, the service worker, CSP and the Drive script; tested with a mocked Google/Drive in headless Chromium.

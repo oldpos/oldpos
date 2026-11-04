@@ -2,6 +2,12 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.8.1 — Safer when the phone is full · undo a wrong collection · lighter backups
+- **Fixed: if the phone's own storage was full, new sales were not sent to Google Drive either.** The change is now always sent to Drive, and a warning appears (once a day) when phone storage passes 70%.
+- **New: undo a wrongly typed payment.** In a customer's ledger tap a *Due Collected* row (or a supplier payment row) to undo it. The Admin PIN is asked when one is set, and it is written to the Security log. Before, a mistyped collection could never be removed.
+- **Lighter backups.** After each upload the app no longer downloads the whole file again when Google reports the same size (less data and battery for big shops); it still reads the file back when the size differs.
+- Cache `v12.8.1`.
+
 ## v12.8.0 — Shop name & Admin PIN follow you to every signed-in device · deeper hardening
 - **Automatic cross-device update.** Change the company name, address, phone, Admin PIN or any setting on one device: it is saved to Google Drive and every other signed-in device picks it up by itself (within seconds while the app is open, at once when you return to it) and says "Shop settings updated from another device". Fixed: a phone that signed in *before* the first backup existed never found the file that another phone created later. A phone whose Google token ran out still receives updates (quiet renewal on the next tap).
 - **Edits no longer revert.** Expenses, bills, purchases, payments, returns and stock adjustments are now merged record by record like products and customers, so editing one on phone A is not undone when phone B saves first.
