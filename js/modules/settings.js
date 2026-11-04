@@ -378,7 +378,7 @@
         ['about', 'fa-scale-balanced', 'About & legal', 'Privacy, terms, license']
       ];
       const sec = (id, body) => { const m = SEC.find(x => x[0] === id); return `<section class="st-sec" data-s="${id}"><div class="st-sec-head"><button type="button" class="icon-btn st-back" onclick="Settings.back()" aria-label="Back to settings"><i class="fas fa-chevron-right fa-rotate-180"></i></button><div class="st-ico"><i class="fas ${m[1]}"></i></div><div><h3>${m[2]}</h3><p>${m[3]}</p></div></div>${body}</section>`; };
-      const SAVE = `<button class="btn btn-primary btn-block" onclick="Settings.save()"><i class="fas fa-floppy-disk"></i> Save changes</button>`;
+      const SAVE = `<button class="btn btn-primary btn-block" onclick="Settings.save()"><i class="fas fa-floppy-disk"></i> Save changes</button><div class="save-state js-save-state" role="status" aria-live="polite"></div>`;
       $('view').innerHTML = `<div class="st" id="st">
       <div class="page-head"><div><h2>Settings</h2><p>Shop, appearance, security, printer & data</p></div></div>
       <div class="st-wrap">
@@ -416,8 +416,8 @@
         <div class="field"><label class="label">Next barcode number</label><input id="st-bcnext" type="number" min="1" step="1" class="input" value="${parseInt(s.nextBarcode, 10) || 1000001}"><p class="xs muted mt1">Next code: <b>${esc((window.BarcodeGen ? BarcodeGen.uniqueCode(s.barcodePrefix || 'ESY', s.nextBarcode) : ''))}</b> · each Generate uses this number, then adds 1</p></div>
         ${SAVE}</div>`)}
       ${sec('appearance', `<div class="card pad mb3">
-        <div class="field"><label class="label">Theme</label>${window.Skin ? Skin.html() : ''}<p class="xs muted mt2">Pick a colour theme — it changes the whole software instantly. <b>Classic</b> is the default.</p></div>
-        <div class="field"><label class="label">Mode</label><div class="mode-seg" role="group" aria-label="Mode">
+        <div class="field"><div class="label">Theme</div>${window.Skin ? Skin.html() : ''}<p class="xs muted mt2">Pick a colour theme — it changes the whole software instantly. <b>Classic</b> is the default.</p></div>
+        <div class="field"><div class="label">Mode</div><div class="mode-seg" role="group" aria-label="Mode">
           <button type="button" data-m="auto" class="${Theme.mode === 'auto' ? 'on' : ''}" onclick="Theme.set('auto')"><i class="fas fa-mobile-screen"></i> Auto</button>
           <button type="button" data-m="light" class="${Theme.mode === 'light' ? 'on' : ''}" onclick="Theme.set('light')"><i class="fas fa-sun"></i> Light</button>
           <button type="button" data-m="dark" class="${Theme.mode === 'dark' ? 'on' : ''}" onclick="Theme.set('dark')"><i class="fas fa-moon"></i> Dark</button></div></div>
@@ -444,7 +444,7 @@
         <div class="sys-row"><span class="sys-dot" id="sy-d1"></span><div class="sys-k">Works offline<small id="sy-s1">Checking…</small></div></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d2"></span><div class="sys-k">Installed as an app<small id="sy-s2">Checking…</small></div><button type="button" class="btn btn-primary hidden" id="sy-inst" onclick="PWA.install()">Install</button></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d3"></span><div class="sys-k">Data protected from cleanup<small id="sy-s3">Checking…</small></div></div>
-        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.8.1</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
+        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.9.0</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
         <div class="sys-row"><div class="sys-k">Storage used<small id="sy-s4">—</small></div></div>
         <div class="sys-row"><div class="sys-k">Repair offline files<small>Re-downloads the app files if something looks broken. Your shop data is not touched.</small></div><button type="button" class="btn btn-ghost" onclick="PWA.reset()">Repair</button></div></div>`)}
       ${sec('about', `<div class="card pad mb3">
@@ -452,16 +452,31 @@
       <div class="tc muted xs">Old POS · Simple POS for Every Business<br>© Old POS · <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="license.html" target="_blank" rel="noopener">MIT License</a> · <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a></div>`)}
       </div></div></div>`;
       this.open(this.sec === undefined ? (window.matchMedia('(min-width:1024px)').matches ? 'shop' : '') : this.sec, true);
-      Theme.apply(); if (window.Design) Design.apply(); Printer.ui(); if (window.Cloud) Cloud.renderUI(); this.sysStatus();
+      this.mark(); Theme.apply(); if (window.Design) Design.apply(); Printer.ui(); if (window.Cloud) Cloud.renderUI(); this.sysStatus();
     },
+    /* v12.9.0: only the fields the owner actually edited are written. A form drawn earlier (or on another device) can therefore never
+       push its old values over newer shop details. Pressing Save always re-sends the settings to Google Drive. */
+    FIELDS: {
+      'st-name': ['shopName', v => v.trim() || 'My Shop'], 'st-addr': ['shopAddress', v => v.trim()], 'st-phone': ['shopPhone', v => v.trim()],
+      'st-cur': ['currency', v => (v || '').trim().slice(0, 4) || C.DEFAULTS.currency], 'st-biz': ['businessType', v => v || 'retail'],
+      'st-tax': ['defaultTax', v => Math.max(0, num(v))], 'st-pre': ['invPrefix', v => v.trim()], 'st-paper': ['paper', v => v],
+      'st-low': ['lowStockDefault', v => { const lw = parseFloat(v); return isFinite(lw) && lw >= 0 ? lw : 5; }], 'st-foot': ['footer', v => v.trim()],
+      'st-taxid': ['taxId', v => v.trim().slice(0, 40)],
+      'st-bcpre': ['barcodePrefix', v => (v || 'ESY').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 6) || 'ESY'],
+      'st-bcfmt': ['barcodeFormat', v => v || 'code128'],
+      'st-bcnext': ['nextBarcode', v => { const bn = parseInt(v, 10); return isFinite(bn) && bn >= 1 ? bn : undefined; }]
+    },
+    mark() { const st = $('st'); if (st) st.querySelectorAll('[id^="st-"]').forEach(e => { if ('value' in e) e.dataset.o = e.value; }); },
     save(silent) {
-      const s = DB.settings; s.shopName = $('st-name').value.trim() || 'My Shop'; s.shopAddress = $('st-addr').value.trim(); s.shopPhone = $('st-phone').value.trim();
-      s.defaultTax = Math.max(0, num($('st-tax').value)); s.footer = $('st-foot').value.trim(); s.taxId = ($('st-taxid') ? $('st-taxid').value.trim() : (s.taxId || '')).slice(0, 40); s.invPrefix = $('st-pre').value.trim(); s.currency = ($('st-cur').value || '').trim().slice(0, 4) || C.DEFAULTS.currency; s.paper = $('st-paper').value; const lw = parseFloat($('st-low').value); s.lowStockDefault = isFinite(lw) && lw >= 0 ? lw : 5;
-      s.businessType = ($('st-biz') && $('st-biz').value) || 'retail';
-      s.barcodePrefix = (($('st-bcpre') && $('st-bcpre').value) || 'ESY').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 6) || 'ESY';
-      s.barcodeFormat = ($('st-bcfmt') && $('st-bcfmt').value) || 'code128';
-      const bn = parseInt($('st-bcnext') && $('st-bcnext').value, 10); if (isFinite(bn) && bn >= 1) s.nextBarcode = bn;
-      C.save('settings'); if (!DB.cart.length) POS.taxInit(); POS.renderCart(); if (silent !== true) { toast('Settings saved ✓'); if (window.Cloud && Cloud.reconnect) setTimeout(() => Cloud.reconnect(), 450); }   // a bill in progress keeps the tax the cashier chose
+      const s = DB.settings, F = this.FIELDS;
+      Object.keys(F).forEach(id => {
+        const el = $(id); if (!el) return;
+        if (el.dataset.o !== undefined && el.value === el.dataset.o) return;                // untouched since it was drawn / last saved
+        const v = F[id][1](el.value); if (v === undefined) { el.value = el.dataset.o || ''; return; }
+        s[F[id][0]] = v; el.value = String(v); el.dataset.o = el.value;
+      });
+      C.save('settings'); if (!DB.cart.length) POS.taxInit(); POS.renderCart();     // a bill in progress keeps the tax the cashier chose
+      if (silent !== true) { toast('Settings saved ✓'); if (window.Cloud && Cloud.reconnect) setTimeout(() => Cloud.reconnect(), 450); }
     }
   };
   window.Settings = App.Views.settings;

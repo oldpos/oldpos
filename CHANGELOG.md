@@ -2,11 +2,21 @@
 
 All notable changes to Old POS. Latest first.
 
-## v12.8.1 — Safer when the phone is full · undo a wrong collection · lighter backups
-- **Fixed: if the phone's own storage was full, new sales were not sent to Google Drive either.** The change is now always sent to Drive, and a warning appears (once a day) when phone storage passes 70%.
-- **New: undo a wrongly typed payment.** In a customer's ledger tap a *Due Collected* row (or a supplier payment row) to undo it. The Admin PIN is asked when one is set, and it is written to the Security log. Before, a mistyped collection could never be removed.
-- **Lighter backups.** After each upload the app no longer downloads the whole file again when Google reports the same size (less data and battery for big shops); it still reads the file back when the size differs.
-- Cache `v12.8.1`.
+## v12.9.0 — Shop details can no longer disappear · Drive status under Save · full UI/UX clean-up
+- **Fixed (root cause): shop name / address / phone and other settings went back to blank after a while.** Settings from Google Drive, another phone or a local copy were merged with a "last agreed copy" check. On a device that had no such copy yet (first sync after an update, new sign-in, old app version) the check could let a blank or default value win and upload it, so the blank spread to Drive and to every device. Also, the Settings form wrote *every* field when *any* field changed, so a form drawn earlier could push old values over newer ones.
+  - Every setting now carries the time of its last edit. When two copies meet, **the newest edit of each setting wins; a blank or default value never beats something the owner typed; a deliberate clear still sticks.** Works for old backups and other devices without any migration.
+  - A second copy of the settings is kept on the device (`esypos_profile`). If the main copy is ever reset, lost or overwritten by a bad restore, it is put back at once (Delete all data, Log out and an explicit "Replace with latest backup" / backup-file restore clear it on purpose).
+  - The form writes only the fields you changed. **Save changes** always re-sends the settings to Google Drive.
+  - New line under every **Save changes** button: *Saved to Google Drive · 2:21 PM* / *Saving…* / *Saved on this device · tap to reconnect*.
+- **UI/UX fixes found in the audit:**
+  - Drop-downs showed **no arrow** (a later style erased it) — fixed in light and dark.
+  - Input fields were almost invisible (border contrast 1.2:1) — now about 3:1 in light and dark, with a clear focus ring, hover and disabled state.
+  - Labels are tied to their fields (tap a label to focus, screen readers read it); phone fields open the phone keypad; browser autofill no longer fills shop/product fields.
+  - The mouse wheel no longer changes a focused price / quantity / stock number while scrolling.
+  - Dialogs: focus moves into the dialog, Tab stays inside it, Escape / Cancel return focus; delete dialogs focus *Cancel* so Enter never deletes by accident. "Forget printer" uses the app dialog instead of the browser one.
+  - Currency example (৳1,250.50) under Business type follows the symbol as you type. Labels 12.5px, table heads 12px; visible keyboard focus on every button; pressed/disabled button states; no sideways scrolling on narrow phones; theme/mode captions are no longer fake labels.
+  - Offline: `bn.html` is cached too.
+- Cache `v12.9.0`. New files: `css/v129.css`, `js/services/polish.js`.
 
 ## v12.8.0 — Shop name & Admin PIN follow you to every signed-in device · deeper hardening
 - **Automatic cross-device update.** Change the company name, address, phone, Admin PIN or any setting on one device: it is saved to Google Drive and every other signed-in device picks it up by itself (within seconds while the app is open, at once when you return to it) and says "Shop settings updated from another device". Fixed: a phone that signed in *before* the first backup existed never found the file that another phone created later. A phone whose Google token ran out still receives updates (quiet renewal on the next tap).

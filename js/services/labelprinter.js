@@ -217,7 +217,7 @@
         <div class="flex gap2 flex-wrap"><button class="btn btn-primary grow" onclick="LP.setup()"><i class="fas fa-plug"></i> ${p ? 'Change / re-detect' : 'Connect printer'}</button>${p ? '<button class="btn btn-soft" onclick="LP.edit()">Paper &amp; options</button><button class="btn btn-danger-soft" onclick="LP.forget()">Forget</button>' : ''}</div></div>`;
     },
     refresh() { const c = $('lp-card'); if (c) c.outerHTML = this.cardHTML(); const ch = document.querySelector('.lp-chip'); if (ch) ch.outerHTML = this.chipHTML(); if (window.Barcodes && App.view === 'barcodes') { Barcodes._autoPicked = false; Barcodes.render(); } },
-    forget() { if (!confirm('Forget this printer? Labels will use the normal size list again.')) return; delete DB.settings.labelPrinter; C.save('settings'); try { USB.dev = null; USB.out = null; } catch (_) {} this.refresh(); toast('Printer forgotten'); },
+    forget() { if (!this._ok) { askConfirm('Labels will use the normal size list again.', () => { this._ok = true; try { this.forget(); } finally { this._ok = false; } }, { title: 'Forget this printer?', yes: 'Forget', danger: true }); return; } delete DB.settings.labelPrinter; C.save('settings'); try { USB.dev = null; USB.out = null; } catch (_) {} this.refresh(); toast('Printer forgotten'); },
 
     /* Step 1: choose how the printer is connected */
     setup() {

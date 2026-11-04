@@ -47,7 +47,7 @@
     if (t && !t.disabled) { Sound.play('click'); Haptic.tap(); }
   }, true);
   let confirmEl = null;
-  function closeConfirm() { if (confirmEl) { confirmEl.remove(); confirmEl = null; } }
+  function closeConfirm() { if (confirmEl) { const pv = confirmEl._prev; confirmEl.remove(); confirmEl = null; try { if (pv && pv.isConnected && pv.focus) pv.focus({ preventScroll: true }); } catch (_) {} } }
   window.askConfirm = function (message, onYes, o) {
     o = o || {}; closeConfirm();
     const el = document.createElement('div'); el.className = 'ui-confirm-backdrop';
@@ -58,7 +58,8 @@
     el.querySelector('.n').onclick = () => { closeConfirm(); o.onCancel && o.onCancel(); };
     el.querySelector('.y').onclick = () => { closeConfirm(); onYes && onYes(); };
     el.addEventListener('click', e => { if (e.target === el) closeConfirm(); });
-    document.body.appendChild(el); confirmEl = el;
+    el._prev = document.activeElement; document.body.appendChild(el); confirmEl = el;
+    setTimeout(() => { const b = el.querySelector(o.danger ? '.n' : '.y'); if (b) b.focus({ preventScroll: true }); }, 30);   // keyboard: Enter never confirms a delete by accident
   };
   window.hasConfirm = () => !!confirmEl; window.closeConfirm = closeConfirm;
   const Modal = {
@@ -70,14 +71,14 @@
       const keepOpen = o.static !== undefined ? !!o.static : /<(input|select|textarea)\b/i.test(o.body || '');   // a form never closes on an accidental tap outside it
       if (!keepOpen) el.addEventListener('mousedown', e => { if (e.target === el) Modal.close(el); });
       el._onClose = o.onClose;
-      document.body.appendChild(el); Modal.stack.push(el); syncLock();
-      const f = el.querySelector('[autofocus]'); if (f) setTimeout(() => f.focus(), 60);
+      el._prev = document.activeElement; document.body.appendChild(el); Modal.stack.push(el); syncLock();
+      const f = el.querySelector('[autofocus]'); if (f) setTimeout(() => f.focus(), 60); else { const sh = el.querySelector('.modal-sheet'); if (sh) { sh.setAttribute('tabindex', '-1'); setTimeout(() => { try { sh.focus({ preventScroll: true }); } catch (_) {} }, 30); } }
       return el;
     },
     close(el) {
       el = el || Modal.stack[Modal.stack.length - 1]; if (!el) return;
       const i = Modal.stack.indexOf(el); if (i >= 0) Modal.stack.splice(i, 1);
-      el.remove(); syncLock(); el._onClose && el._onClose();
+      el.remove(); syncLock(); el._onClose && el._onClose(); try { const pv = el._prev; if (pv && pv.isConnected && pv.focus && !document.querySelector('.modal-back,.ui-confirm-backdrop')) pv.focus({ preventScroll: true }); } catch (_) {}
     },
     closeFrom(node) { const el = node.closest('.modal-back'); if (el) Modal.close(el); },
     closeAll() { while (Modal.stack.length) Modal.close(); },
@@ -188,7 +189,7 @@
         Object.keys(K).forEach(k => { if (k === 'settings' || k === 'cart') return; clean[k] = cleanColl(k, d[k]); dropped += (Array.isArray(d[k]) ? d[k].length : 0) - clean[k].length; });
         askConfirm(`Backup has ${clean.products.length} products, ${clean.sales.length} sales, ${clean.customers.length} customers. Current data will be replaced.` + (dropped > 0 ? ` (${dropped} damaged record${dropped > 1 ? 's' : ''} will be skipped.)` : '') + ' Tip: save a backup file of the current data first.', () => {
           Object.keys(K).forEach(k => { if (k === 'settings') { const keep = Core.keepSecrets(); DB.settings = Object.assign({}, Core.DEFAULTS, Core.cleanSettings(d.settings), keep);   /* a backup file can never set or remove the PINs */ } else if (k === 'cart') DB.cart = []; else DB[k] = clean[k]; });
-          Core.migrate(); saveAll(); toast('Restore successful ✓'); setTimeout(() => location.reload(), 700);
+          Core.dropMirror(); Core.migrate(); saveAll(); toast('Restore successful ✓'); setTimeout(() => location.reload(), 700);
         }, { title: 'Restore backup?', yes: 'Yes, restore', danger: true });
       } catch (err) { toast('⚠️ Not a valid Old POS backup file'); }
     };
@@ -200,7 +201,7 @@
     askConfirm('All data on this device (products, sales, customers, expenses...) will be deleted. A backup file is saved to your Downloads first.' + cloudNote, () => {
       askConfirm('Really delete all data? This cannot be undone!', () => {
         try { window.exportBackupFile(); } catch (_) {}          // the safety copy is downloaded BEFORE anything is removed
-        setTimeout(() => { Object.values(K).forEach(k => localStorage.removeItem(k)); ['esypos_last_backup', 'esypos_dirty'].forEach(k => localStorage.removeItem(k)); location.reload(); }, 1500);
+        setTimeout(() => { Object.values(K).forEach(k => localStorage.removeItem(k)); ['esypos_last_backup', 'esypos_dirty', 'esypos_profile'].forEach(k => localStorage.removeItem(k)); location.reload(); }, 1500);
       }, { title: 'Final confirmation', yes: 'Yes, delete all', danger: true });
     }, { title: 'Delete all data?', yes: 'Continue', danger: true });
   };

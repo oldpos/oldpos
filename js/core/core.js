@@ -15,6 +15,63 @@
   };
   const DB = { products: [], sales: [], customers: [], payments: [], suppliers: [], purchases: [],
                spayments: [], expenses: [], returns: [], hold: [], cart: [], adjust: [], settings: Object.assign({}, DEFAULTS) };
+
+  /* ===== v12.9.0: shop details that never disappear =====
+     Every setting an owner changes gets a time stamp ("ts_<name>"). When two copies meet (this device, Google Drive, another phone, a
+     backup) the NEWEST edit of each setting wins, and a blank / default value can never beat something the owner typed. A second copy
+     of the settings is kept under its own key on this device; if the main copy is ever lost or reset, it is put back at once. */
+  const NOSYNC = { nextInvoice: 1, nextBarcode: 1 };
+  const isTs = k => k.indexOf('ts_') === 0;
+  const sameJ = (a, b) => JSON.stringify(a == null ? '' : a) === JSON.stringify(b == null ? '' : b);
+  const isBlank = (k, v) => v == null || v === '' || (Array.isArray(v) && !v.length) || (DEFAULTS[k] !== undefined && sameJ(v, DEFAULTS[k]));
+  let setSnap = null;                                  // what was last loaded / written, to see which keys an edit changed
+  const SECRET_LIST = ['pinHash', 'pinSalt', 'adminHash', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'];
+  function stampSettings() {
+    const s = DB.settings; if (!s) return;
+    if (!setSnap) { setSnap = Object.assign({}, s); return; }
+    const now = Date.now();
+    Object.keys(s).forEach(k => { if (isTs(k) || NOSYNC[k]) return; if (!sameJ(s[k], setSnap[k])) s['ts_' + k] = now; });
+    setSnap = Object.assign({}, s);
+  }
+  // newest edit wins per setting; ties: a typed value beats a blank/default one; still tied: the remote (Drive) value
+  function mergeSettings(local, remote) {
+    const L = local || {}, R = remote || {}, out = Object.assign({}, DEFAULTS), keys = {};
+    Object.keys(L).concat(Object.keys(R)).forEach(k => { if (!isTs(k)) keys[k] = 1; });
+    Object.keys(keys).forEach(k => {
+      const inL = k in L, inR = k in R;
+      if (NOSYNC[k]) { out[k] = Math.max(parseInt(L[k], 10) || 1, parseInt(R[k], 10) || 1); return; }
+      if (!inR) { if (inL) { out[k] = L[k]; if (L['ts_' + k]) out['ts_' + k] = L['ts_' + k]; } return; }
+      if (!inL) { out[k] = R[k]; if (R['ts_' + k]) out['ts_' + k] = R['ts_' + k]; return; }
+      const tl = +L['ts_' + k] || 0, tr = +R['ts_' + k] || 0;
+      let useL;
+      if (tl !== tr) useL = tl > tr;
+      else if (isBlank(k, L[k]) !== isBlank(k, R[k])) useL = !isBlank(k, L[k]);
+      else useL = false;
+      out[k] = useL ? L[k] : R[k]; const t = Math.max(tl, tr); if (t) out['ts_' + k] = t;
+    });
+    return out;
+  }
+  const MIRROR = 'esypos_profile';
+  function writeMirror() {
+    if (halted) return;
+    try { const o = {}; Object.keys(DB.settings).forEach(k => { if (SECRET_LIST.indexOf(k) < 0) o[k] = DB.settings[k]; }); root.localStorage.setItem(MIRROR, JSON.stringify({ t: Date.now(), v: o })); } catch (_) {}
+  }
+  // if the main settings copy lost something the owner had typed (reset, stale restore, a bug), the mirror puts it back
+  function guardFromMirror(s) {
+    if (!s || halted) return false;
+    let m = null; try { m = JSON.parse(root.localStorage.getItem(MIRROR) || 'null'); } catch (_) {}
+    if (!m || !m.v || typeof m.v !== 'object') return false;
+    const v = cleanSettings(m.v); let fixed = false;
+    Object.keys(v).forEach(k => {
+      if (isTs(k) || NOSYNC[k] || SECRET_LIST.indexOf(k) >= 0) return;
+      const tm = +v['ts_' + k] || 0, ts = +s['ts_' + k] || 0;
+      if (tm > ts || (tm === ts && isBlank(k, s[k]) && !isBlank(k, v[k]))) { s[k] = v[k]; if (tm) s['ts_' + k] = tm; fixed = true; }
+    });
+    if (fixed) { try { console.info('Old POS: shop settings restored from the local mirror'); } catch (_) {} }
+    return fixed;
+  }
+  const dropMirror = () => { try { root.localStorage.removeItem(MIRROR); } catch (_) {} };
+  const settingsEqual = (a, b) => { const A = a || {}, B = b || {}, ks = {}; Object.keys(A).concat(Object.keys(B)).forEach(k => { if (!NOSYNC[k]) ks[k] = 1; }); return Object.keys(ks).every(k => sameJ(A[k], B[k])); };
   function safeLoad(key, fallback) {
     try {
       const raw = root.localStorage.getItem(key);
@@ -34,6 +91,7 @@
     if (halted) return false;
     try {
       root.localStorage.setItem(key, JSON.stringify(value));
+      if (key === K.settings) setSnap = Object.assign({}, value);
       return true;
     } catch (e) {
       console.error('Save failed:', key, e);
@@ -55,20 +113,23 @@
     const names = Array.from(pending); pending.clear();
     let synced = false;
     names.forEach(name => {
-      const key = K[name]; writeKey(key, name === 'settings' ? DB.settings : DB[name]);
-      if (name !== 'cart') synced = true;   // v12.8.1: even if THIS phone's storage is full the change is still sent to Google Drive
+      if (name === 'settings') guardFromMirror(DB.settings);
+      const key = K[name]; const ok = writeKey(key, name === 'settings' ? DB.settings : DB[name]);
+      if (ok && name === 'settings') writeMirror();
+      if (ok && name !== 'cart') synced = true;
     });
     if (synced) { try { root.localStorage.setItem('esypos_dirty', '1'); } catch (_) {} if (root.Cloud) root.Cloud.markDirty(); }
   }
   function save(name) {
     if (halted) return true;
+    if (name === 'settings') stampSettings();
     rev++;
     pending.add(name);
     if (name !== 'cart') { try { root.localStorage.setItem('esypos_dirty', '1'); } catch (_) {} }   // crash-safe marker, tiny write
     if (!saveTimer) saveTimer = setTimeout(flush, name === 'cart' ? 350 : 120);
     return true;
   }
-  function saveAll() { Object.keys(K).forEach(n => pending.delete(n)); clearTimeout(saveTimer); saveTimer = null; rev++; Object.keys(K).forEach(n => safeSave(K[n], n === 'settings' ? DB.settings : DB[n])); }
+  function saveAll() { Object.keys(K).forEach(n => pending.delete(n)); clearTimeout(saveTimer); saveTimer = null; rev++; guardFromMirror(DB.settings); Object.keys(K).forEach(n => safeSave(K[n], n === 'settings' ? DB.settings : DB[n])); writeMirror(); }
   if (typeof root.addEventListener === 'function') {
     root.addEventListener('pagehide', flush);
     root.addEventListener('beforeunload', flush);
@@ -110,6 +171,8 @@
       if (name === 'settings') DB.settings = Object.assign({}, DEFAULTS, cleanSettings(safeLoad(K.settings, {})));
       else DB[name] = safeLoad(K[name], []);
     });
+    setSnap = Object.assign({}, DB.settings);
+    if (guardFromMirror(DB.settings)) { setSnap = Object.assign({}, DB.settings); writeKey(K.settings, DB.settings); }
     migrate();
   }
   /* Security: record ids end up inside inline handlers (onclick="Receipt.showId('…')"). A tampered backup / cloud file could carry an id like
@@ -248,7 +311,7 @@
     if (!c) return rows;
     if (num(c.openingDue)) rows.push({ date: c.created || '1970-01-01T00:00:00.000Z', type: 'opening', desc: 'Opening payable', debit: num(c.openingDue), credit: 0 });
     DB.purchases.forEach(p => { if (p.supplierId === id) rows.push({ date: p.date, type: 'purchase', desc: 'Purchases #' + p.no + ' (Total ' + money(p.total) + ', Payment ' + money(p.paid) + ')', debit: num(p.due), credit: 0 }); });
-    DB.spayments.forEach(p => { if (p.supplierId === id) rows.push({ date: p.date, type: 'payment', desc: 'Payment' + (p.note ? ' — ' + p.note : ''), debit: 0, credit: num(p.amount), ref: p.id }); });
+    DB.spayments.forEach(p => { if (p.supplierId === id) rows.push({ date: p.date, type: 'payment', desc: 'Payment' + (p.note ? ' — ' + p.note : ''), debit: 0, credit: num(p.amount) }); });
     rows.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
     let bal = 0; rows.forEach(r => { bal = r2(bal + r.debit - r.credit); r.balance = bal; });
     return rows;
@@ -334,15 +397,6 @@
   const SECRET_KEYS = ['pinHash', 'pinSalt', 'adminHash', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'];
   const stripSecrets = s => { const o = Object.assign({}, s || {}); SECRET_KEYS.forEach(k => { o[k] = ''; }); return o; };
   const keepSecrets = () => { const o = {}; SECRET_KEYS.forEach(k => { o[k] = (DB.settings && DB.settings[k]) || ''; }); return o; };
-  function usage() {                                  // bytes used by Old POS in localStorage (UTF-16: 2 bytes per character)
-    let n = 0; try { for (let i = 0; i < root.localStorage.length; i++) { const k = root.localStorage.key(i); n += (k.length + (root.localStorage.getItem(k) || '').length) * 2; } } catch (_) {}
-    return n;
-  }
-  let warnedAt = 0;
-  function checkSpace() {                             // browsers allow about 5 MB; warn early, once a day
-    const u = usage(), lim = 5 * 1048576; if (u < lim * 0.7 || Date.now() - warnedAt < 864e5) return u;
-    warnedAt = Date.now(); toast('⚠️ Phone storage is ' + Math.round(u / lim * 100) + '% full. Remove product photos you do not need, or ask for the next update (bigger storage).'); return u;
-  }
   function halt() { halted = true; pending.clear(); clearTimeout(saveTimer); saveTimer = null; }
   /* v12.8.0: settings that come from outside (Drive, backup file, local copy) are rebuilt from safe values only:
      odd key names such as __proto__, nested objects and giant strings are dropped before they can touch the app. */
@@ -360,7 +414,7 @@
     });
     return o;
   }
-  const api = { usage, checkSpace, cleanSettings, halt, K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
+  const api = { cleanSettings, mergeSettings, settingsEqual, stampSettings, guardFromMirror, dropMirror, writeMirror, halt, K, DEFAULTS, DB, SECRET_KEYS, stripSecrets, keepSecrets, safeLoad, safeSave, save, saveAll, flush, rev: () => rev, collator, debounce, imgSrc, cur, load, migrate, esc, num, cleanNum, numLoose, r2, fmt, money, genId, z2, dkey, todayKey, addDays, monthStart,
     fmtDate, fmtTime, fmtDT, invLabel, toast, unitLabel, findProduct, findCustomer, findSupplier, findSale, customerBalance, supplierBalance, totalCustomerDue,
     totalSupplierDue, returnedQty, returnedAmount, customerLedger, supplierLedger, buildReport, stockValue, toCSV, parseCSV, download, inRange };
   root.Core = api;

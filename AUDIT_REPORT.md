@@ -1,15 +1,21 @@
-# Old POS v12.8.1 — Audit pass 3
-| # | Problem | Fix |
-|---|---------|-----|
-| 1 | Full local storage -> change never marked for cloud (only after a successful local write) | always marked dirty |
-| 2 | No early warning before the ~5 MB browser limit (about 10,000 bills) | `Core.checkSpace()` at 70% |
-| 3 | A mistyped due collection / supplier payment could not be removed | tap row -> Admin PIN -> undo |
-| 4 | Every backup was uploaded and then downloaded again to verify | size compare, full read-back only on mismatch |
+# Old POS v12.9.0 — Audit pass 3 (shop details + UI/UX)
 
-Open and important: all shop data lives in localStorage (~5 MB). Years of bills will reach that limit; the real fix is moving storage to IndexedDB (large change, needs its own release and migration test).
-Tested: undo changes balance and syncs; full-storage sale reaches Drive; 0 verification downloads on a normal push; earlier scenarios re-run.
+Verified with Node simulations of the settings merge (6 device scenarios), a full-app boot test (jsdom) of Settings → Shop, ESLint (no undefined variables / dead code), CSS syntax parse of all 9 style sheets, HTML id/alt/link checks, and an icon-font coverage check (80 icon classes, none missing).
 
----
+| # | Area | Problem | Fix |
+|---|------|---------|-----|
+| 1 | Data | Blank/default settings from Drive, an old backup or a device without a sync base could win the merge and then be uploaded (shop name, address, phone vanished) | Per-setting edit time (`ts_*`); newest edit wins; blank never beats typed; deliberate clear sticks |
+| 2 | Data | Settings form wrote every field on any change — a stale form overwrote newer values | Only edited fields are written (`data-o` original tracking); Save always re-syncs |
+| 3 | Data | No second copy of shop details on the device | `esypos_profile` mirror, restored automatically if the main copy regresses; cleared on Log out / Delete all / explicit restore |
+| 4 | UX | No sign that shop details reached Google Drive | Live "Saved to Google Drive · time" line under every Save button |
+| 5 | UI | Every `<select>` lost its arrow (refine.css `background:` shorthand reset it) | Arrow restored, light + dark |
+| 6 | UI | Input border contrast 1.2:1 | ~3:1, hover/focus/disabled/invalid states |
+| 7 | A11y | Labels not linked to fields; theme/mode captions were fake labels | Auto-linked; captions are plain text |
+| 8 | UX | Mouse wheel changed focused number fields | Field blurs on wheel |
+| 9 | A11y | Dialogs: no focus move, Tab left the dialog, Enter could confirm a delete | Focus management, Tab trap, Cancel focused on danger dialogs |
+| 10 | UX | Native browser `confirm()` for Forget printer | App dialog |
+| 11 | UI | Currency example did not follow the symbol; tiny 11px labels; no focus ring on buttons | Live example, 12px+, focus-visible ring |
+| 12 | PWA | `bn.html` not cached offline | Added |
 
 # Old POS v12.8.0 — Audit pass 2
 

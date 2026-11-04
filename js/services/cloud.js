@@ -127,7 +127,7 @@
     const meta = fid ? {} : { name: VIS, mimeType: 'application/json' };   // no parent = My Drive, visible to the user
     const body = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
       '\r\n--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + text + '\r\n--' + b + '--';
-    const r = await api((fid ? UPLOAD + '/' + fid : UPLOAD) + '?uploadType=multipart&fields=id,modifiedTime,size',
+    const r = await api((fid ? UPLOAD + '/' + fid : UPLOAD) + '?uploadType=multipart&fields=id,modifiedTime',
       { method: fid ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body });
     return r.json();
   }
@@ -164,12 +164,12 @@
     if (d.integrity) { const g = integrity(d); if (g.h !== d.integrity.h || g.t !== d.integrity.t) throw mk('badfile'); }
     S.applying = true;
     Object.keys(K).forEach(k => {
-      if (k === 'settings') DB.settings = Object.assign({}, C.DEFAULTS, C.cleanSettings(d.settings));
+      if (k === 'settings') { const rs = C.cleanSettings(d.settings); DB.settings = C.mergeSettings(DB.settings, rs); if (!C.settingsEqual(DB.settings, Object.assign({}, C.DEFAULTS, rs))) pushAfter = true; }   // v12.9.0: newest edit of every setting wins; a blank never beats typed shop details
       else if (k === 'cart') DB.cart = [];
       else DB[k] = Array.isArray(d[k]) ? d[k] : [];
     });
     if (rescueInto(DB.settings)) pushAfter = true;
-    if (get(KEY.pinReset) === '1') { DB.settings.pinHash = ''; DB.settings.pinSalt = ''; DB.settings.adminHash = ''; DB.settings.adminSalt = ''; ['pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'].forEach(k => { DB.settings[k] = ''; }); pushAfter = true; del(KEY.pinReset); }
+    if (get(KEY.pinReset) === '1') { const now = Date.now(); ['pinHash', 'pinSalt', 'adminHash', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH'].forEach(k => { DB.settings[k] = ''; DB.settings['ts_' + k] = now; }); pushAfter = true; del(KEY.pinReset); }
     C.migrate(); C.saveAll(); saveBase(snap(d)); saveSetBase(C.cleanSettings(d.settings));
     set(KEY.rev, f.modifiedTime); set(KEY.fid, f.id); set(KEY.last, String(Date.now()));
     if (pushAfter) set(KEY.dirty, '1'); else del(KEY.dirty);
@@ -206,13 +206,9 @@
       if (!force && !manual && last >= 20 && cnt < last * 0.5) throw mk('shrink');
       if (f) await snapshotBefore(f);
       const hidden = f && (f.spaces || []).indexOf('appDataFolder') >= 0;   // older hidden file: create the visible one, keep the old as a copy
-      const bodyText = JSON.stringify(pl), want = new Blob([bodyText]).size;
-      const res = await writeMain(f && !hidden ? f.id : null, bodyText);
-      // v12.8.1: Drive reports the stored size - when it matches there is no need to download the whole file again
-      if (!(res && Number(res.size) === want)) {                    // otherwise read it back: only call it a backup if it matches
-        const back = await download(res.id);
-        if (!back || !back.integrity || back.integrity.h !== pl.integrity.h) throw mk('verify');
-      }
+      const res = await writeMain(f && !hidden ? f.id : null, JSON.stringify(pl));
+      const back = await download(res.id);                          // read it back: only call it a backup if it matches
+      if (!back || !back.integrity || back.integrity.h !== pl.integrity.h) throw mk('verify');
       set('esypos_g_cnt', String(cnt)); saveBase(sn); saveSetBase(pl.settings);
       set(KEY.fid, res.id); set(KEY.rev, res.modifiedTime); set(KEY.last, String(Date.now()));
       S.retries = 0;
@@ -402,6 +398,11 @@
         : `<button class="acct signin" onclick="Cloud.panel()"><span class="g-av g">${gIcon}</span><span class="grow"><b>Sign in with Google</b><small>Keep data safe on Drive</small></span></button>`;
     });
     document.querySelectorAll('.js-cloud-body').forEach(el => { el.innerHTML = bodyHTML(); });
+    // v12.9.0: under every Save button, say plainly where the shop details are right now
+    const st = on ? ({ ok: ['ok', 'fa-cloud', 'Saved to Google Drive' + (timeOf() ? ' · ' + timeOf() : '')], pending: ['pending', 'fa-cloud-arrow-up', 'Saving to Google Drive…'], syncing: ['syncing', 'fa-rotate', 'Saving to Google Drive…'],
+      auth: ['off auth', 'fa-link-slash', 'Saved on this device · tap to reconnect Google and upload'], offline: ['pending', 'fa-wifi', 'Saved on this device · uploads when you are online'], error: ['err', 'fa-triangle-exclamation', 'Saved on this device · Drive upload failed, retrying'] }[S.status] || ['', 'fa-cloud', 'Connected to Google Drive'])
+      : ['off', 'fa-cloud-arrow-up', 'Saved on this device · sign in with Google to keep it in Drive for ever'];
+    document.querySelectorAll('.js-save-state').forEach(el => { el.className = 'save-state js-save-state ' + st[0]; el.innerHTML = '<i class="fas ' + st[1] + '"></i><span>' + st[2] + '</span>'; });
   }
   function panel() {
     const m = Modal.open({ title: 'Google Drive Cloud Backup', body: '<div class="js-cloud-body"></div>' }); renderUI(); return m;
@@ -617,18 +618,11 @@
       L.forEach(l => { if (!rm.has(l.id) && !(Bk && (l.id in Bk))) { res.push(l); local = true; } });   // new on this device
       out[k] = res;
     });
-    const ls = DB.settings, rs = C.cleanSettings(R.settings), sb = loadSetBase();
-    const st = Object.assign({}, C.DEFAULTS, rs);
-    if (sb) {                                        // v12.7.3: only the keys changed on THIS device since the last sync win; everything else follows the cloud
-      const bb = Object.assign({}, C.DEFAULTS, sb);
-      Object.keys(ls).forEach(k => { if (!NOSYNC[k] && !sameVal(ls[k], bb[k]) && !sameVal(ls[k], st[k])) { st[k] = ls[k]; local = true; } });
-    } else if (B && setHash(ls) !== B.s) { Object.assign(st, ls); local = true; }   // data saved by an older app version (no per-key copy yet)
-    else if (!B) {                                   // no common base yet (new sign-in): keep what was typed here wherever the cloud copy still has the default
-      SET_KEYS.concat(['lockedViews', 'sectionLockMin', 'autoLockMin', 'keypadShuffle', 'pinSalt', 'adminSalt', 'pinQ', 'pinAS', 'pinAH', 'admQ', 'admAS', 'admAH']).forEach(k => {
-        const dv = C.DEFAULTS[k], isDef = v => v == null || v === '' || String(v) === String(dv == null ? '' : dv) || (Array.isArray(v) && !v.length);
-        if (!isDef(ls[k]) && isDef(rs[k])) { st[k] = ls[k]; local = true; }
-      });
-    }
+    const ls = DB.settings, rs = C.cleanSettings(R.settings);
+    // v12.9.0: every setting carries the time of its last edit. The newest edit wins, a blank/default value never beats typed shop details,
+    // and a deliberate clear (a newer edit) still sticks. Works the same for every device and every older backup.
+    const st = C.mergeSettings(ls, rs);
+    if (!C.settingsEqual(st, Object.assign({}, C.DEFAULTS, rs))) local = true;      // this device holds newer settings than the cloud: upload them
     let mx = 0; out.sales.forEach(x => { mx = Math.max(mx, parseInt(x.no, 10) || 0); });
     st.nextInvoice = Math.max(parseInt(ls.nextInvoice, 10) || 1, parseInt(rs.nextInvoice, 10) || 1, mx + 1);
     st.nextBarcode = Math.max(parseInt(ls.nextBarcode, 10) || 1, parseInt(rs.nextBarcode, 10) || 1);
@@ -661,7 +655,7 @@
         if (k === 'settings') DB.settings = Object.assign({}, C.DEFAULTS, C.cleanSettings(d.settings));
         else DB[k] = Array.isArray(d[k]) ? d[k] : [];
       });
-      C.migrate(); C.saveAll();
+      C.dropMirror(); C.migrate(); C.saveAll();
       set(KEY.rev, f.modifiedTime); set(KEY.fid, f.id); set(KEY.last, String(Date.now())); set('esypos_g_cnt', String(total(integrity(d).n)));
       del(KEY.dirty); del('esypos_dirty');
     } finally { setTimeout(() => { S.applying = false; del(KEY.dirty); del('esypos_dirty'); setStatus('ok'); }, 800); }

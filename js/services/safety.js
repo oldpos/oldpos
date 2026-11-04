@@ -192,7 +192,7 @@
       else if (k === 'cart') DB.cart = [];
       else DB[k] = Array.isArray(d[k]) ? d[k].filter(x => x && typeof x === 'object') : [];
     });
-    C.migrate(); C.saveAll();
+    C.dropMirror(); C.migrate(); C.saveAll();
     return true;
   }
   async function downloadCopy(t) {

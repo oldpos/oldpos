@@ -77,7 +77,7 @@
           <button class="btn btn-soft" onclick="People.remind('${id}')"><i class="fas fa-bell"></i> Reminder</button></div>
         <button class="btn btn-ghost btn-block mb3" onclick="People.statement('${id}')"><i class="fas fa-print"></i> Print account statement</button>
         <div class="sec-title">Ledger</div>
-        <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="r">Due +</th><th class="r">Paid −</th><th class="r">Balance</th></tr></thead><tbody>${led.length ? led.map(r => `<tr ${r.type === 'sale' ? `onclick="Receipt.showId('${r.ref}')" style="cursor:pointer"` : r.type === 'payment' && r.ref ? `onclick="People.delPay('${r.ref}')" style="cursor:pointer" title="Tap to undo this collection"` : ''}><td class="xs">${C.fmtDate(r.date)}</td><td class="sm">${esc(r.desc)}</td><td class="r bad">${r.debit ? money(r.debit) : ''}</td><td class="r ok">${r.credit ? money(r.credit) : ''}</td><td class="r fw6">${money(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>'}</tbody></table></div>`,
+        <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="r">Due +</th><th class="r">Paid −</th><th class="r">Balance</th></tr></thead><tbody>${led.length ? led.map(r => `<tr ${r.type === 'sale' ? `onclick="Receipt.showId('${r.ref}')" style="cursor:pointer"` : ''}><td class="xs">${C.fmtDate(r.date)}</td><td class="sm">${esc(r.desc)}</td><td class="r bad">${r.debit ? money(r.debit) : ''}</td><td class="r ok">${r.credit ? money(r.credit) : ''}</td><td class="r fw6">${money(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>'}</tbody></table></div>`,
         foot: `<button class="btn btn-danger-soft" onclick="People.del('${id}')" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button><button class="btn" onclick="People.edit('${id}',()=>{Modal.closeAll();People.detail('${id}');App.refresh()})"><i class="fas fa-pen"></i> Edit</button>` });
     },
     collect(id) {
@@ -117,15 +117,6 @@
         <h2 style="margin:16px 0 4px">Account statement</h2><div><b>${esc(c.name)}</b>${c.phone ? ' · ' + esc(c.phone) : ''}</div><div class="m">Printed ${esc(C.fmtDate(new Date().toISOString()))}</div>
         <table><thead><tr><th>Date</th><th>Description</th><th class="r">Due +</th><th class="r">Paid −</th><th class="r">Balance</th></tr></thead><tbody>${rows}</tbody></table>
         <div class="box"><span>${b >= 0 ? 'Amount due' : 'Advance balance'}</span><b>${money(Math.abs(b))}</b></div></body></html>`);
-    },
-    delPay(pid) {                                    // v12.8.1: undo a collection that was typed by mistake
-      const p = DB.payments.find(x => x.id === pid); if (!p) return; const cid = p.customerId;
-      const run = () => askConfirm('Undo the collection of ' + money(p.amount) + ' on ' + C.fmtDate(p.date) + '? The customer\'s due goes back up by that amount.', () => {
-        DB.payments = DB.payments.filter(x => x.id !== pid); C.save('payments');
-        if (window.Guard && Guard.log) Guard.log('Collection of ' + money(p.amount) + ' undone');
-        Modal.closeAll(); toast('Collection undone'); App.refresh(); setTimeout(() => People.detail(cid), 80);
-      }, { title: 'Undo collection?', yes: 'Yes, undo', danger: true });
-      if (window.Guard && Guard.confirmPin) Guard.confirmPin(run, 'undo collection'); else run();
     },
     del(id) {
       const c = findCustomer(id); const used = DB.sales.some(s => s.customerId === id) || DB.payments.some(p => p.customerId === id);
@@ -167,20 +158,11 @@
         C.save('suppliers'); Modal.close(m); toast('Saved ✓'); if (after) after(rid); else App.refresh();
       };
     },
-    delPay(pid) {
-      const p = DB.spayments.find(x => x.id === pid); if (!p) return; const sid = p.supplierId;
-      const run = () => askConfirm('Undo the payment of ' + money(p.amount) + ' on ' + C.fmtDate(p.date) + '? The amount payable to the supplier goes back up.', () => {
-        DB.spayments = DB.spayments.filter(x => x.id !== pid); C.save('spayments');
-        if (window.Guard && Guard.log) Guard.log('Supplier payment of ' + money(p.amount) + ' undone');
-        Modal.closeAll(); toast('Payment undone'); App.refresh(); setTimeout(() => Buy.supDetail(sid), 80);
-      }, { title: 'Undo payment?', yes: 'Yes, undo', danger: true });
-      if (window.Guard && Guard.confirmPin) Guard.confirmPin(run, 'undo supplier payment'); else run();
-    },
     supDetail(id) {
       const s = findSupplier(id); const b = C.supplierBalance(id); const led = C.supplierLedger(id).reverse();
       Modal.open({ title: s.name, size: 'wide', body: `<div class="card pad mb3 tc"><div class="muted xs">Payable to suppliers</div><div class="xxl fw7 ${b > 0 ? 'bad' : 'ok'}">${money(Math.max(0, b))}</div><div class="xs muted mt1">${esc(s.phone || '')} ${esc(s.address || '')}</div></div>
         <button class="btn btn-primary btn-block mb3" onclick="Buy.pay('${id}')"><i class="fas fa-money-bill-transfer"></i> Make payment</button>
-        <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="r">Payable +</th><th class="r">Payment −</th><th class="r">Balance</th></tr></thead><tbody>${led.length ? led.map(r => `<tr ${r.type === 'payment' && r.ref ? `onclick="Buy.delPay('${r.ref}')" style="cursor:pointer" title="Tap to undo this payment"` : ''}><td class="xs">${C.fmtDate(r.date)}</td><td class="sm">${esc(r.desc)}</td><td class="r bad">${r.debit ? money(r.debit) : ''}</td><td class="r ok">${r.credit ? money(r.credit) : ''}</td><td class="r fw6">${money(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>'}</tbody></table></div>`,
+        <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="r">Payable +</th><th class="r">Payment −</th><th class="r">Balance</th></tr></thead><tbody>${led.length ? led.map(r => `<tr><td class="xs">${C.fmtDate(r.date)}</td><td class="sm">${esc(r.desc)}</td><td class="r bad">${r.debit ? money(r.debit) : ''}</td><td class="r ok">${r.credit ? money(r.credit) : ''}</td><td class="r fw6">${money(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>'}</tbody></table></div>`,
         foot: `<button class="btn btn-danger-soft" onclick="Buy.delSup('${id}')" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button><button class="btn" onclick="Buy.editSup('${id}',()=>{Modal.closeAll();Buy.supDetail('${id}');App.refresh()})"><i class="fas fa-pen"></i> Edit</button>` });
     },
     pay(id) {
