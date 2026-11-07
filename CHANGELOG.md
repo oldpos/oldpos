@@ -2,6 +2,12 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.9.1 — SMM Panel (oldpos.com/smm) · menu entry · version fixes
+- **New: SMM Panel.** Public page `smm/index.html` (opens at `oldpos.com/smm/`): follower packages (5K–100K), link step, manual bKash / Nagad / Rocket payment with TrxID, order sent to the owner's WhatsApp. Uses the app's own colours, themes (Classic + 6 skins), dark mode and Inter font; one small file with no third-party scripts so it opens fast from a Facebook ad. Optional Facebook Pixel ID setting (empty = nothing loaded).
+- **New: menu item "SMM Panel"** (before Settings, desktop sidebar and mobile menu) opens the page in a new tab.
+- **Fixed:** the sign-in screen and the SEO data still said v12.8.0; every version label now reads v12.9.1 (index, settings, `sw.js`, `pwa.js` — the last two must always match).
+- Cache `v12.9.1`; `/smm/` added to the offline cache and sitemap.
+
 ## v12.9.0 — Shop details can no longer disappear · Drive status under Save · full UI/UX clean-up
 - **Fixed (root cause): shop name / address / phone and other settings went back to blank after a while.** Settings from Google Drive, another phone or a local copy were merged with a "last agreed copy" check. On a device that had no such copy yet (first sync after an update, new sign-in, old app version) the check could let a blank or default value win and upload it, so the blank spread to Drive and to every device. Also, the Settings form wrote *every* field when *any* field changed, so a form drawn earlier could push old values over newer ones.
   - Every setting now carries the time of its last edit. When two copies meet, **the newest edit of each setting wins; a blank or default value never beats something the owner typed; a deliberate clear still sticks.** Works for old backups and other devices without any migration.

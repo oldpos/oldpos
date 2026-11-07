@@ -66,3 +66,7 @@ img,svg,video,canvas{max-width:100%}
 
 /* 10) Respect the system "reduce motion" switch everywhere */
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* v12.9.1: menu entry that opens the SMM page */
+.nav-link .nav-badge{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:99px;background:var(--psoft);color:var(--ptext)}
+.nav-link.active .nav-badge{background:rgba(255,255,255,.22);color:#fff}

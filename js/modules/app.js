@@ -12,6 +12,7 @@
     { id: 'expenses', label: 'Expenses', icon: 'fa-money-bill-wave' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-column' },
     { id: 'barcodes', label: 'Barcode Labels', icon: 'fa-barcode' },
+    { id: 'smm', label: 'SMM Panel', icon: 'fa-user-plus', href: 'smm/', badge: 'New' },   // v12.9.1: opens the public SMM page (oldpos.com/smm) in a new tab
     { id: 'settings', label: 'Settings', icon: 'fa-sliders' }
   ];
   const Views = {};
@@ -29,6 +30,7 @@
       } catch (err) { console.error('Old POS view render', v, err); }
       window.scrollTo(0, 0);
     },
+    openExternal(href) { App.closeDrawers(); try { const w = window.open(href, '_blank', 'noopener'); if (!w) location.href = href; } catch (_) { location.href = href; } },
     refresh() { Views[App.view] && Views[App.view].render(); },
     toggleNav() { const d = $('mobile-nav'); const o = d.classList.contains('open'); App.closeDrawers(); if (!o) { d.classList.add('open'); $('scrim').classList.remove('hidden'); } syncLock(); },
     toggleCart() { const d = $('mobile-cart'); const o = d.classList.contains('open'); App.closeDrawers(); if (!o) { d.classList.add('open'); $('scrim').classList.remove('hidden'); } syncLock(); },
@@ -36,7 +38,9 @@
     drawerOpen() { return !!document.querySelector('.drawer.open'); }
   };
   function buildNav() {
-    const html = NAV.map(n => `<button type="button" class="nav-link" data-v="${n.id}" onclick="App.go('${n.id}')"><i class="fas ${n.icon}"></i> ${n.label}</button>`).join('');
+    const html = NAV.map(n => n.href
+      ? `<button type="button" class="nav-link nav-ext" data-href="${n.href}" onclick="App.openExternal('${n.href}')"><i class="fas ${n.icon}"></i> ${n.label}${n.badge ? `<span class="nav-badge">${n.badge}</span>` : ''}</button>`
+      : `<button type="button" class="nav-link" data-v="${n.id}" onclick="App.go('${n.id}')"><i class="fas ${n.icon}"></i> ${n.label}</button>`).join('');
     $('nav-desk').innerHTML = html; $('nav-mob').innerHTML = html;
   }
   let exitArmed = false;

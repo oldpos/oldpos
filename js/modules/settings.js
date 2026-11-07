@@ -444,7 +444,7 @@
         <div class="sys-row"><span class="sys-dot" id="sy-d1"></span><div class="sys-k">Works offline<small id="sy-s1">Checking…</small></div></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d2"></span><div class="sys-k">Installed as an app<small id="sy-s2">Checking…</small></div><button type="button" class="btn btn-primary hidden" id="sy-inst" onclick="PWA.install()">Install</button></div>
         <div class="sys-row"><span class="sys-dot" id="sy-d3"></span><div class="sys-k">Data protected from cleanup<small id="sy-s3">Checking…</small></div></div>
-        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.9.0</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
+        <div class="sys-row"><span class="sys-dot ok"></span><div class="sys-k">Version<small>Old POS v12.9.1</small></div><button type="button" class="btn btn-ghost" onclick="Settings.checkUpdate(this)">Check update</button></div>
         <div class="sys-row"><div class="sys-k">Storage used<small id="sy-s4">—</small></div></div>
         <div class="sys-row"><div class="sys-k">Repair offline files<small>Re-downloads the app files if something looks broken. Your shop data is not touched.</small></div><button type="button" class="btn btn-ghost" onclick="PWA.reset()">Repair</button></div></div>`)}
       ${sec('about', `<div class="card pad mb3">
@@ -454,7 +454,7 @@
       this.open(this.sec === undefined ? (window.matchMedia('(min-width:1024px)').matches ? 'shop' : '') : this.sec, true);
       this.mark(); Theme.apply(); if (window.Design) Design.apply(); Printer.ui(); if (window.Cloud) Cloud.renderUI(); this.sysStatus();
     },
-    /* v12.9.0: only the fields the owner actually edited are written. A form drawn earlier (or on another device) can therefore never
+    /* v12.9.1: only the fields the owner actually edited are written. A form drawn earlier (or on another device) can therefore never
        push its old values over newer shop details. Pressing Save always re-sends the settings to Google Drive. */
     FIELDS: {
       'st-name': ['shopName', v => v.trim() || 'My Shop'], 'st-addr': ['shopAddress', v => v.trim()], 'st-phone': ['shopPhone', v => v.trim()],
