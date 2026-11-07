@@ -18,7 +18,7 @@ const CRITICAL = [
   './assets/icons/icon-192.png', './assets/icons/icon-512.png', './assets/icons/maskable-512.png', './assets/icons/apple-touch-icon.png'
 ];
 const OPTIONAL = [
-  './features.html', './smm/index.html', './bn.html', './privacy.html', './terms.html', './license.html', './404.html', './favicon.ico',
+  './features.html', './smm/index.html', './assets/pay/bkash.svg', './assets/pay/nagad.svg', './assets/pay/rocket.svg', './assets/icons/smm-logo-72.png', './bn.html', './privacy.html', './terms.html', './license.html', './404.html', './favicon.ico',
   './assets/icons/favicon-32.png', './assets/icons/favicon-16.png'
 ];
 const APP_SHELL = CRITICAL.concat(OPTIONAL);

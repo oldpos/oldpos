@@ -12,10 +12,10 @@ html body .input:disabled,html body .input[readonly]:not(.lk-in){background-colo
 html body .input:invalid:not(:placeholder-shown):not(:focus){border-color:var(--bad,#dc2626)}
 
 /* 2) Dropdown arrow was missing on every <select>: refine.css' `background:` shorthand erased the arrow image. Drawn again, theme-aware. */
-html body select.input{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:40px;cursor:pointer;text-overflow:ellipsis;
+html body select.input.input{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:40px;cursor:pointer;text-overflow:ellipsis;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px}
-html.dark body select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+html.dark body select.input.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px}
 html body select.input option{color:#0f172a;background:#fff}
 html.dark body select.input option{color:#e5eaf3;background:#111a2e}
 
