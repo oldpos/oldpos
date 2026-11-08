@@ -2,6 +2,14 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.9.2 — SMM market selector & professional checkout
+- **Bangladeshi Facebook Followers:** added 5K ৳900, 10K ৳1,700, 30K ৳5,100 and 50K ৳8,500 packages in a separate Bangladesh section.
+- **Worldwide:** retained the existing package sizes and prices; Bangladesh and Worldwide can be switched independently.
+- **Checkout polish:** replaced the rough payment artwork with clean bKash, Nagad and Rocket payment choices; clarified the amount, payment number, sender number and TrxID steps.
+- **WhatsApp order details:** the ready-to-send message now includes the selected market, package, page link, payment method, sender number and TrxID. A reminder explains that the customer must press Send in WhatsApp.
+- **Business information:** added a section explaining the role of follower count while clarifying that follower numbers alone do not guarantee reach, trust or sales. Added the longer-delivery notice for Bangladesh packages.
+- **Validation & offline cache:** the Facebook-only service now accepts Facebook Page/Profile links, and the service-worker/PWA cache was bumped to v12.9.2 so the updated SMM page is refreshed offline too.
+
 ## v12.9.1 — SMM Panel (oldpos.com/smm) · menu entry · version fixes
 - **New: SMM Panel.** Public page `smm/index.html` (opens at `oldpos.com/smm/`): follower packages (5K–100K), link step, manual bKash / Nagad / Rocket payment with TrxID, order sent to the owner's WhatsApp. Uses the app's own colours, themes (Classic + 6 skins), dark mode and Inter font; one small file with no third-party scripts so it opens fast from a Facebook ad. Optional Facebook Pixel ID setting (empty = nothing loaded).
 - **New: menu item "SMM Panel"** (before Settings, desktop sidebar and mobile menu) opens the page in a new tab.
