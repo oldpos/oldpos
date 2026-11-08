@@ -5,20 +5,20 @@
    - Security headers: every page served by this worker carries frame-ancestors 'none', nosniff, a strict referrer policy
      and a Permissions-Policy that only allows the camera (barcode scan) and Bluetooth (printer) for this app.
    App data lives in localStorage + the user's Google Drive; this cache only holds the app files. */
-const CACHE_VERSION = 'v12.9.2';
+const CACHE_VERSION = 'v12.9.3';
 const APP_CACHE = `oldpos-app-${CACHE_VERSION}`;
 
 const CRITICAL = [
   './', './index.html', './offline.html', './manifest.webmanifest',
-  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/refine.css', './css/v129.css', './css/icons.css',
+  './css/style.css', './css/appshell.css', './css/modern.css', './css/polish.css', './css/simple.css', './css/themes.css', './css/refine.css', './css/v129.css', './css/business.css', './css/icons.css',
   './fonts/inter-latin-var.woff2', './fonts/fa-solid-subset.woff2', './fonts/fa-brands-subset.woff2',
   './js/core/core.js', './js/core/barcode.js', './js/core/wedge.js', './js/core/linear.js', './js/core/ui.js', './js/core/config.js',
-  './js/modules/app.js', './js/modules/people.js', './js/modules/misc.js', './js/modules/home.js', './js/modules/settings.js',
+  './js/modules/app.js', './js/modules/people.js', './js/modules/misc.js', './js/modules/home.js', './js/modules/settings.js', './js/modules/business.js',
   './js/services/cloud.js', './js/services/guard.js', './js/services/labelprinter.js', './js/services/pwa.js', './js/services/security.js', './js/services/keypad.js', './js/services/recovery.js', './js/services/safety.js', './js/services/appshell.js', './js/services/community.js', './js/services/polish.js',
   './assets/icons/icon-192.png', './assets/icons/icon-512.png', './assets/icons/maskable-512.png', './assets/icons/apple-touch-icon.png'
 ];
 const OPTIONAL = [
-  './features.html', './smm/index.html', './assets/pay/bkash.svg', './assets/pay/nagad.svg', './assets/pay/rocket.svg', './assets/icons/smm-logo-72.png', './bn.html', './privacy.html', './terms.html', './license.html', './404.html', './favicon.ico',
+  './features.html', './smm/index.html', './business/index.html', './assets/pay/bkash.svg', './assets/pay/nagad.svg', './assets/pay/rocket.svg', './assets/icons/smm-logo-72.png', './bn.html', './privacy.html', './terms.html', './license.html', './404.html', './favicon.ico',
   './assets/icons/favicon-32.png', './assets/icons/favicon-16.png'
 ];
 const APP_SHELL = CRITICAL.concat(OPTIONAL);

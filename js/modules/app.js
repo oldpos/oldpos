@@ -12,7 +12,7 @@
     { id: 'expenses', label: 'Expenses', icon: 'fa-money-bill-wave' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-column' },
     { id: 'barcodes', label: 'Barcode Labels', icon: 'fa-barcode' },
-    { id: 'smm', label: 'SMM Panel', icon: 'fa-user-plus', href: 'smm/', badge: 'New' },   // v12.9.1: opens the public SMM page (oldpos.com/smm) in a new tab
+    { id: 'business', label: 'Business Support', icon: 'fa-store', badge: 'New' },   // v12.9.3: in-app page (oldpos.com/business) — ads, followers, page setup, promo video
     { id: 'settings', label: 'Settings', icon: 'fa-sliders' }
   ];
   const Views = {};
@@ -51,6 +51,7 @@
     if (window.Scanner && Scanner.isOpen()) { Scanner.close(); return true; }
     if (Modal.stack.length) { Modal.close(); return true; }
     if (App.drawerOpen()) { App.closeDrawers(); return true; }
+    if (App.view === 'business' && window.Business && Business.back()) return true;
     if (App.view === 'settings' && window.Settings && Settings.sec && !window.matchMedia('(min-width:1024px)').matches) { Settings.back(); return true; }
     if (App.view !== 'dashboard') { App.go('dashboard'); return true; }
     return false;

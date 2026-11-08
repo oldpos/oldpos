@@ -2,6 +2,12 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.9.3 — Business Support (replaces the "SMM Panel" menu link)
+- **Menu:** "SMM Panel" is now **Business Support**. It no longer opens a new tab: the page opens inside the software with the same colours, skins, dark mode and Back-button behaviour. Direct link: `oldpos.com/business` (opens the app on this page).
+- **One page, five services, in this order:** 1) Facebook Ads — page link, minimum $10 with no upper limit, live total at 155৳ per $; 2) World followers (5K–100K); 3) Bangladeshi followers (5K–50K); 4) Business Page setup — 1,500৳; 5) Faceless promotional video (over 1 minute) — 2,000৳.
+- **Same safe checkout for every service:** details → bKash / Nagad / Rocket payment with TrxID → order message ready in WhatsApp. Duplicate TrxID check, last orders list with "send again", copy order ID.
+- The public `oldpos.com/smm` page is unchanged (still used for Facebook ad links). Cache and version bumped to v12.9.3 (`sw.js` and `pwa.js` match); `business.js`, `business.css` and `/business/` added to the offline cache.
+
 ## v12.9.2 — SMM market selector & professional checkout
 - **Bangladeshi Facebook Followers:** added 5K ৳900, 10K ৳1,700, 30K ৳5,100 and 50K ৳8,500 packages in a separate Bangladesh section.
 - **Worldwide:** retained the existing package sizes and prices; Bangladesh and Worldwide can be switched independently.
