@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /business
 
 Sitemap: https://oldpos.com/sitemap.xml

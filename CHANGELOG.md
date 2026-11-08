@@ -2,6 +2,17 @@
 
 All notable changes to Old POS. Latest first.
 
+## v12.10.0 — Business Support opens inside the software · full clean-up & speed pass
+- **Business Support is now a real screen of the software** (menu → Business Support, or the slim strip at the bottom of the Dashboard). It uses the app's own layout, skins and dark mode, and no longer opens a separate page or tab.
+- **`oldpos.com/business` stays the address.** `business/index.html` is now a tiny forwarder: it opens the software and the address bar shows `oldpos.com/business` while the page is open (and `oldpos.com` on every other screen). Ad links keep working: `/business?pkg=10000&market=bd`, `/business?service=ads|setup|video`.
+- **Sign-in required.** Only signed-in (registered) users see the services, prices and payment numbers; everyone else gets the normal sign-in screen and the page opens right after sign-in.
+- **Simpler flow, same prices:** 5 service cards → details → payment → WhatsApp order. Payment step shows bKash / Nagad / Rocket **logo images** (`assets/pay/*.svg`), the number with a Copy button and the exact amount. Phone: one column with the order summary on top; desktop: form + sticky summary. The Back button / arrow steps back inside the page first.
+- **Loads on demand:** `css/business.css` and `js/modules/business.js` are fetched only when the page is opened, so the first open of the app does not get heavier.
+- **Speed:** the 8 style sheets are merged into one `css/app.css` (one request instead of 8, no visual change — checked pixel-by-pixel on 11 screens × 2 sizes). PNG images re-compressed (≈ 740 KB less; `og-image.png` 347 KB → 35 KB, `icon-512.png` 116 KB → 24 KB).
+- **Removed:** `smm/` (old redirect), 11 unused screenshots, `firebase-rules.json` (the user counter uses Google Apps Script), `smm-logo-72.png`, and `/business` from the sitemap (it is for signed-in users; `robots.txt` disallows it).
+- **Fixed:** the desktop title bar showed "Business SupportNew" (menu badge leaked into the title).
+- Cache and version v12.10.0.
+
 ## v12.9.3 — Business Support (oldpos.com/business) · replaces the old SMM page
 - **New page `oldpos.com/business`** (`business/index.html`, one self-contained file; skins + dark mode follow the software). Followers first (World / Bangladeshi switch, package cards with per-1,000 rate), then Facebook Ads (budget slider, quick amounts, live total at 155৳ per $, minimum $10, no upper limit), Business Page setup 1,500৳, faceless promo video 2,000৳, how-it-works, trust points, FAQ and WhatsApp help. Sections appear gradually while scrolling; sticky section menu; two-column checkout with a summary panel on desktop.
 - **Checkout for every service:** details → bKash / Nagad / Rocket → order message in WhatsApp; duplicate TrxID check; recent orders with "send again"; browser Back follows the steps.

@@ -1,3 +1,24 @@
+# Old POS v12.10.0 — Audit pass 4 (Business Support inside the app, clean-up, speed)
+
+Checked with headless Chromium (phone 390 px and desktop 1280 px): every view opens with no JS error and no sideways scroll; the Business flow (service → details → payment → order) incl. validation, duplicate TrxID, direct ad links, Back button; signed-out visitors see only the sign-in screen.
+
+| # | Area | Finding | Action |
+|---|------|---------|--------|
+| 1 | Product | Business Support opened as a separate page/tab, not part of the software | Now a built-in screen, URL `oldpos.com/business`, sign-in required |
+| 2 | Access | Prices and payment numbers were visible to anyone | Hidden behind sign-in inside the app (see note below) |
+| 3 | UI | Payment tiles were text badges, long "Personal · Send Money" wrapped | Logo images + name only; summary on top on phones |
+| 4 | Speed | 8 render-blocking style sheets on first open | Merged into `css/app.css` (identical pixels) |
+| 5 | Speed | 740 KB of oversized PNGs (og-image 347 KB, icon-512 116 KB) | Re-compressed, same size/look |
+| 6 | Clean-up | 11 unused screenshots, `firebase-rules.json`, `smm/` redirect, unused logo | Deleted |
+| 7 | UI | Desktop title bar read "Business SupportNew" | Badge text excluded from the title |
+| 8 | SEO | `/business` listed in sitemap although it needs sign-in | Removed; `robots.txt` Disallow |
+
+Note: the site is static (GitHub Pages). The sign-in gate is enforced by the app; `js/modules/business.js` itself is a public file and contains only the price list and payment numbers (no secrets). Real server-side protection would need a backend.
+
+Still open (unchanged, needs a design decision): inline `onclick` handlers force `'unsafe-inline'` in the CSP; Google token is kept in localStorage.
+
+---
+
 # Old POS v12.9.0 — Audit pass 3 (shop details + UI/UX)
 
 Verified with Node simulations of the settings merge (6 device scenarios), a full-app boot test (jsdom) of Settings → Shop, ESLint (no undefined variables / dead code), CSS syntax parse of all 9 style sheets, HTML id/alt/link checks, and an icon-font coverage check (80 icon classes, none missing).
