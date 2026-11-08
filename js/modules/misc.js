@@ -280,6 +280,7 @@
   };
   App.Views.reports = Rep;
   App.Views.dashboard = {
+    hideBiz() { try { localStorage.setItem('biz_strip_off', String(Date.now())); } catch (_) {} this.render(); },
     hideGuide() { try { localStorage.setItem('esypos_guide_off', '1'); } catch (_) {} this.render(); },
     render() {
       const t = C.todayKey(); const td = C.buildReport(t, t); const mo = C.buildReport(C.monthStart(), t);
@@ -320,6 +321,8 @@
       const top = mo.topProducts.slice(0, 5).map((x, i) => `<div class="sd-top"><span class="sd-rk">${i + 1}</span><span class="sd-tn">${esc(x.name || 'Item')}<small>${fmt(x.qty)} sold · profit ${money(x.profit)}</small><i class="sd-tb"><u style="width:${Math.max(4, Math.round(x.amount / topMax * 100))}%"></u></i></span><span class="sd-rv">${money(x.amount)}</span></div>`).join('');
       const spark = (() => { const n = days.length; if (n < 2) return ''; const W = 120, H = 44, pts = days.map((d, i) => [Math.round(i / (n - 1) * W * 10) / 10, Math.round((H - 4 - d.v / mx * (H - 10)) * 10) / 10]); const line = pts.map(q => q.join(',')).join(' '); const last = pts[n - 1];
         return `<svg class="sd-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,${H} ${line} ${W},${H}" class="sd-sa"/><polyline points="${line}" class="sd-sl"/><circle cx="${last[0]}" cy="${last[1]}" r="3" class="sd-sd"/></svg>`; })();
+      let bizOff = false; try { const t0 = Number(localStorage.getItem('biz_strip_off') || 0); bizOff = t0 && Date.now() - t0 < 7 * 864e5; } catch (_) {}
+      const biz = bizOff ? '' : `<div class="biz-strip"><button type="button" class="biz-go" onclick="App.openExternal('business/')"><i class="fas fa-store"></i><span><b>Business Support</b> · Followers, Facebook Ads, Page setup &amp; Promo video</span><i class="fas fa-chevron-right"></i></button><button type="button" class="biz-x" aria-label="Hide for 7 days" title="Hide for 7 days" onclick="App.Views.dashboard.hideBiz()"><i class="fas fa-xmark"></i></button></div>`;
       $('view').innerHTML = `<div class="sd dash2">
       <section class="sd-card sd-hero"><div class="sd-hero-l"><span class="sd-k"><i class="fas fa-cash-register"></i> Today's sales</span><div class="sd-big">${money(td.netSales)}</div><div class="sd-sub">${bills} bill${bills === 1 ? '' : 's'}${delta}</div></div>${spark}</section>
       <div class="sd-acts"><button type="button" class="sd-act pri" onclick="App.go('pos')"><i class="fas fa-cash-register"></i><span>New sale</span></button><button type="button" class="sd-act" onclick="App.go('expenses');setTimeout(function(){try{Exp.add()}catch(e){}},80)"><i class="fas fa-wallet"></i><span>Add expense</span></button><button type="button" class="sd-act" onclick="Home.addProduct()"><i class="fas fa-box-open"></i><span>Add product</span></button></div>
@@ -336,6 +339,7 @@
         <section class="sd-card"><div class="sd-h"><h3>Needs attention</h3></div>${alerts || '<p class="sd-empty">All good ✓</p>'}</section>
       </div>
       <section class="sd-card"><div class="sd-h"><h3>Top sellers · this month</h3><button type="button" class="sd-link" onclick="App.go('reports')">Full report</button></div>${top || '<p class="sd-empty">No sales this month yet</p>'}</section>
+      ${biz}
       </div>`;
     }
   };

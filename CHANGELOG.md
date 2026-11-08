@@ -2,11 +2,13 @@
 
 All notable changes to Old POS. Latest first.
 
-## v12.9.3 — Business Support (replaces the "SMM Panel" menu link)
-- **Menu:** "SMM Panel" is now **Business Support**. It no longer opens a new tab: the page opens inside the software with the same colours, skins, dark mode and Back-button behaviour. Direct link: `oldpos.com/business` (opens the app on this page).
-- **One page, five services, in this order:** 1) Facebook Ads — page link, minimum $10 with no upper limit, live total at 155৳ per $; 2) World followers (5K–100K); 3) Bangladeshi followers (5K–50K); 4) Business Page setup — 1,500৳; 5) Faceless promotional video (over 1 minute) — 2,000৳.
-- **Same safe checkout for every service:** details → bKash / Nagad / Rocket payment with TrxID → order message ready in WhatsApp. Duplicate TrxID check, last orders list with "send again", copy order ID.
-- The public `oldpos.com/smm` page is unchanged (still used for Facebook ad links). Cache and version bumped to v12.9.3 (`sw.js` and `pwa.js` match); `business.js`, `business.css` and `/business/` added to the offline cache.
+## v12.9.3 — Business Support (oldpos.com/business) · replaces the old SMM page
+- **New page `oldpos.com/business`** (`business/index.html`, one self-contained file; skins + dark mode follow the software). Followers first (World / Bangladeshi switch, package cards with per-1,000 rate), then Facebook Ads (budget slider, quick amounts, live total at 155৳ per $, minimum $10, no upper limit), Business Page setup 1,500৳, faceless promo video 2,000৳, how-it-works, trust points, FAQ and WhatsApp help. Sections appear gradually while scrolling; sticky section menu; two-column checkout with a summary panel on desktop.
+- **Checkout for every service:** details → bKash / Nagad / Rocket → order message in WhatsApp; duplicate TrxID check; recent orders with "send again"; browser Back follows the steps.
+- **Direct links for ads:** `/business/?market=bd&pkg=10000`, `/business/?pkg=25000`, `/business/?service=ads|setup|video`.
+- **`oldpos.com/smm/` replaced:** `smm/index.html` now only forwards (with the same query) to `/business/` — no file needs to be deleted.
+- **Menu:** "SMM Panel" → "Business Support". **Dashboard:** a slim one-line Business Support strip at the very bottom (hide button, stays hidden 7 days).
+- Cache and version v12.9.3.
 
 ## v12.9.2 — SMM market selector & professional checkout
 - **Bangladeshi Facebook Followers:** added 5K ৳900, 10K ৳1,700, 30K ৳5,100 and 50K ৳8,500 packages in a separate Bangladesh section.

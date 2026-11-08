@@ -70,3 +70,14 @@ img,svg,video,canvas{max-width:100%}
 /* v12.9.1: menu entry that opens the SMM page */
 .nav-link .nav-badge{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:99px;background:var(--psoft);color:var(--ptext)}
 .nav-link.active .nav-badge{background:rgba(255,255,255,.22);color:#fff}
+
+/* v12.9.3: slim Business Support strip at the very bottom of the dashboard (hideable for 7 days) */
+.biz-strip{display:flex;align-items:center;gap:4px;margin-top:4px;border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
+.biz-strip .biz-go{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:7px 10px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+.biz-strip .biz-go>i:first-child{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:11px;background:var(--grad);color:#fff}
+.biz-strip .biz-go span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.biz-strip .biz-go b{color:var(--text);font-weight:700}
+.biz-strip .biz-go>i:last-child{flex:none;font-size:10px;opacity:.6}
+.biz-strip .biz-go:hover{background:var(--hover)}
+.biz-strip .biz-x{flex:none;width:30px;align-self:stretch;border:0;background:transparent;color:var(--muted);font-size:11px;cursor:pointer;opacity:.7}
+.biz-strip .biz-x:hover{background:var(--hover);opacity:1}
